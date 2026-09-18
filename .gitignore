@@ -19,6 +19,9 @@ uploads/
 # Editors and operating systems
 .idea/
 .vscode/
-docs/.obsidian/workspace.json
+docs/README.md
+docs/附件2*.zip
+docs/.obsidian/
+docs/参考图/
 .DS_Store
 Thumbs.db
