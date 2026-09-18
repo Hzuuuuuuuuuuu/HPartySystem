@@ -1,0 +1,155 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+    encoding:
+      charset: UTF-8
+      force: true
+  tomcat:
+    uri-encoding: UTF-8
+
+spring:
+  application:
+    name: hparty-server
+  profiles:
+    active: dev
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 200MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 注意：characterEncoding 要填 Java 字符集名（UTF-8），不能填 MySQL 的 utf8mb4，
+    # 否则驱动会抛 UnsupportedEncodingException。服务端 utf8mb4 由 connectionCollation 指定。
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:hparty}?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_general_ci&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: HPartyHikariPool
+  # ---------------- 数据库版本管理 ----------------
+  # 迁移脚本在 src/main/resources/db/migration/，启动时自动应用未执行的部分。
+  # 结构变更必须新增 V3__xxx.sql（不要再手工 ALTER），改完在库上会留下 flyway_schema_history。
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # 对「已有数据但没有迁移历史」的库自动打基线，避免误把 V1/V2 重跑一遍
+    # （V1 含 DROP TABLE，重跑会清空数据）
+    baseline-on-migrate: true
+    # 基线版本设为 2：现有库的结构与初始化数据已等价于 V1+V2 都执行过，
+    # 因此打基线后不会重跑它们，只会应用 V3 及之后的迁移。
+    baseline-version: 2
+    baseline-description: 已有数据库基线（等价于 V1 结构 + V2 初始化数据）
+    # 校验已应用的迁移文件未被篡改 —— 改历史迁移会导致校验失败，这是有意的保护
+    validate-on-migrate: true
+    # 迁移失败即中止启动，不要让应用带着半截 schema 跑起来
+    fail-on-missing-locations: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+          max-wait: 3000ms
+
+# ---------------- Sa-Token 鉴权 ----------------
+sa-token:
+  # 前端在请求头 Authorization 中携带：Bearer <token>
+  token-name: Authorization
+  token-prefix: Bearer
+  # 令牌有效期（秒），默认 2 小时
+  timeout: 7200
+  # 临时活跃有效期，-1 表示不限制
+  active-timeout: -1
+  # 允许同一账号多端登录
+  is-concurrent: true
+  # 多端登录时共用一个令牌
+  is-share: false
+  token-style: uuid
+  # 关闭控制台 banner 与操作日志
+  is-print: false
+  is-log: false
+
+# ---------------- MyBatis-Plus ----------------
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    # 开发期打印 SQL，生产环境请在 application-prod.yml 中关闭
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: delFlag
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      table-underline: true
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.hparty.**.domain.entity
+
+# ---------------- 接口文档 ----------------
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  default-flat-param-object: true
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+    swagger-model-name: 数据模型
+
+# ---------------- 业务配置 ----------------
+hparty:
+  captcha:
+    # 是否开启登录验证码
+    enabled: true
+  password:
+    # 密码有效期（天）。超过后登录会要求改密；0 表示不过期
+    # 「从未改过初始密码」的账号也会被要求改密（pwd_update_date 为空）
+    expire-days: 90
+  job:
+    # 定时任务总开关。本地调试或写单元测试时可设为 false
+    enabled: true
+    # 时间一律错开到非整点，避免与其他系统的定时任务撞在同一秒
+    dues-generate-cron: "0 7 1 1 * ?"      # 每月 1 日 01:07 生成当月党费账单
+    overdue-scan-cron:   "0 23 7 * * ?"     # 每日 07:23 扫描超期项
+    log-clean-cron:      "0 13 3 * * ?"     # 每日 03:13 清理过期日志
+    log-retain-days: 90
+  file:
+    # 存储类型：local / minio / oss
+    storage: local
+    # 本地存储根目录（Windows 用正斜杠）
+    local-path: D:/hparty/upload
+    # 文件访问地址前缀，与 server.servlet.context-path 保持一致
+    url-prefix: /api/file/preview
+    # 单文件大小上限（MB）
+    max-size-mb: 50
+    allowed-extensions: jpg,jpeg,png,gif,bmp,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar,mp4,mp3
+
+# ---------------- 日志 ----------------
+logging:
+  level:
+    root: info
+    com.hparty: debug
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%15.15thread]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %msg%n"

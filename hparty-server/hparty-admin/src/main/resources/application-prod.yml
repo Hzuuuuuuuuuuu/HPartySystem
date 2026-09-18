@@ -1,0 +1,102 @@
+# =====================================================================
+#  生产环境配置
+#
+#  启动：java -jar hparty-admin.jar --spring.profiles.active=prod
+#
+#  本文件只写与 application.yml 的**差异项**，Spring 会做覆盖合并。
+#  所有敏感值一律走环境变量，不要写进文件 —— 这个文件会进版本库。
+#
+#  上线前的逐项确认见 docs/06-生产上线清单.md。
+# =====================================================================
+
+server:
+  # 生产走 Nginx 反代，必须让 Spring 从 X-Forwarded-* 头里取真实客户端 IP
+  # （否则登录日志、操作日志里全是 Nginx 的 IP，出问题无法追溯）
+  forward-headers-strategy: framework
+  tomcat:
+    # 适当调大，配合 Nginx 的 client_max_body_size
+    max-swallow-size: 100MB
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_general_ci&serverTimezone=Asia/Shanghai&useSSL=true&requireSSL=false&allowPublicKeyRetrieval=false&rewriteBatchedStatements=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      minimum-idle: 10
+      maximum-pool-size: 30
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+
+  # 生产必须保持 true —— 关掉它整套数据库版本管理就形同虚设
+  flyway:
+    enabled: true
+    # 生产不允许自动打基线：宁可启动失败让人工确认，也不要悄悄跳过迁移
+    baseline-on-migrate: false
+    clean-disabled: true
+
+mybatis-plus:
+  configuration:
+    # 关键：关掉 SQL 全量打印。开着会打爆日志盘，且把身份证号等数据写进日志文件
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+sa-token:
+  is-print: false
+  is-log: false
+  # 生产不要允许同一账号无限多端登录，避免会话失控
+  is-concurrent: true
+  # 单端登录可用：is-concurrent: false
+
+knife4j:
+  # 接口文档不暴露在公网。若确需保留，用 Nginx 做 IP 白名单
+  enable: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    root: warn
+    com.hparty: info
+  file:
+    name: ${LOG_PATH:/var/log/hparty}/hparty.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB
+
+hparty:
+  bootstrap:
+    admin:
+      # 仅当数据库里的 admin 仍是 V2 遗留默认密码 123456 时需要。
+      # 首次生产启动必须通过环境变量提供强口令；替换成功后 admin 登录仍会强制改密。
+      initial-password: ${HPARTY_ADMIN_INITIAL_PASSWORD:}
+  captcha:
+    # 生产必须保留验证码
+    enabled: true
+  password:
+    # 密码有效期（天）。0 表示不过期 —— 但不建议关掉
+    expire-days: 90
+  file:
+    local-path: ${UPLOAD_PATH:/data/hparty/upload}
+    url-prefix: /api/file/preview
+    max-size-mb: 50
+  job:
+    enabled: true
+    # 定时任务时间一律错开到非整点，避免与其他系统的定时任务撞在同一秒
+    dues-generate-cron: "0 7 1 1 * ?"      # 每月 1 日 01:07 生成当月党费账单
+    overdue-scan-cron:   "0 23 7 * * ?"     # 每日 07:23 扫描超期项
+    log-clean-cron:      "0 13 3 * * ?"     # 每日 03:13 清理过期日志
+    log-retain-days: 90

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.hparty</groupId>
+        <artifactId>hparty-server</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>hparty-admin</artifactId>
+    <packaging>jar</packaging>
+    <name>hparty-admin</name>
+    <description>启动模块：Application 主类 + 配置</description>
+
+    <dependencies>
+        <!--
+            数据库版本管理：启动时自动应用 db/migration 下未执行的迁移。
+            结构变更必须新增 V3__xxx.sql、V4__xxx.sql，不要再手工在库上执行 ALTER ——
+            那会让线上库与脚本失去可比对性，回滚也无从谈起。
+        -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.hparty</groupId>
+            <artifactId>hparty-system</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.hparty</groupId>
+            <artifactId>hparty-party</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.hparty</groupId>
+            <artifactId>hparty-develop</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>hparty-admin</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,646 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
+    'Helvetica Neue', Arial, sans-serif;
+  background: #f5f5f5;
+  color: #262626;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 主框架滚动边界 ---------- */
+.hparty-root-layout {
+  height: 100vh;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+.hparty-main-layout {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- 侧边栏 ---------- */
+.hparty-sider {
+  height: 100vh;
+  background: linear-gradient(180deg, #c7000b 0%, #a80009 100%) !important;
+  overflow: hidden;
+}
+
+.hparty-sider .ant-layout-sider-children {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hparty-sider .ant-menu {
+  background: transparent !important;
+  border-inline-end: none !important;
+}
+
+.hparty-menu {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.hparty-sider .ant-menu-item-selected {
+  font-weight: 600;
+}
+
+.hparty-sider .ant-menu-submenu-selected > .ant-menu-submenu-title,
+.hparty-sider .ant-menu-submenu-selected > .ant-menu-submenu-title .ant-menu-item-icon,
+.hparty-sider .ant-menu-submenu-selected > .ant-menu-submenu-title .ant-menu-submenu-arrow {
+  color: #fff !important;
+}
+
+/* 侧边栏顶部 logo 区 */
+.hparty-logo {
+  height: 148px;
+  flex: 0 0 148px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  margin-bottom: 8px;
+}
+
+.hparty-logo__emblem {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #ffd700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  color: #c7000b;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+.hparty-logo__org {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+/* ---------- 顶栏 ---------- */
+.hparty-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #c7000b !important;
+  padding: 0 20px 0 16px !important;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.16);
+  z-index: 10;
+}
+
+.hparty-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.hparty-header__brand-icon {
+  font-size: 20px;
+  color: #ffd700;
+}
+
+.hparty-header__user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #fff;
+}
+
+.hparty-header__user-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  color: #fff;
+  font-size: 14px;
+}
+
+.hparty-header__user-item:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ---------- 顶部标签页 ---------- */
+.hparty-tabs {
+  flex: none;
+  background: #fff;
+  padding: 6px 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.hparty-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+/* ---------- 内容区 ---------- */
+.hparty-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---------- 功能入口卡片（图1 / 图2 的大圆形图标） ---------- */
+.func-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.func-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 26px 12px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.func-item:hover {
+  background: #fff5f5;
+  transform: translateY(-2px);
+}
+
+.func-item__circle {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #fdecec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: #c7000b;
+  margin-bottom: 14px;
+  transition: background 0.2s;
+}
+
+.func-item:hover .func-item__circle {
+  background: #fbdcdc;
+}
+
+.func-item__label {
+  font-size: 15px;
+  color: #262626;
+  font-weight: 500;
+}
+
+/* ---------- 发展党员卡片墙（图5） ---------- */
+.person-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 16px;
+}
+
+.person-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.person-card:hover {
+  box-shadow: 0 6px 18px rgba(199, 0, 11, 0.14);
+  transform: translateY(-2px);
+}
+
+.person-card__photo {
+  height: 150px;
+  background: linear-gradient(160deg, #c7000b 0%, #8f0007 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 46px;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.person-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.person-card__body {
+  padding: 10px 8px 12px;
+  text-align: center;
+}
+
+.person-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 3px;
+}
+
+.person-card__org {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 25 步时间轴 ---------- */
+.timeline-stage {
+  margin-bottom: 8px;
+}
+
+.timeline-stage__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-left: 4px solid #c7000b;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.timeline-stage__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.timeline-step {
+  padding: 12px 0;
+  border-bottom: 1px dashed #f0f0f0;
+}
+
+.timeline-step:last-child {
+  border-bottom: none;
+}
+
+.timeline-step__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.timeline-step__code {
+  display: inline-block;
+  min-width: 62px;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: #f5f5f5;
+  color: #8c8c8c;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.timeline-step__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.timeline-step__meta {
+  margin-top: 8px;
+  padding-left: 2px;
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.9;
+}
+
+.timeline-step__meta-label {
+  color: #8c8c8c;
+  margin-right: 6px;
+}
+
+/* ---------- 步骤所需材料清单 ---------- */
+.material-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.material-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  background: #fafafa;
+  line-height: 1.6;
+}
+
+.material-item:hover {
+  border-color: #ffccc7;
+  background: #fff7f6;
+}
+
+.material-item__name {
+  font-size: 13px;
+  color: #262626;
+}
+
+/* 按钮推到行尾；窄屏下随 flex-wrap 换行，不会挤坏布局 */
+.material-item__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.material-item__actions .ant-btn {
+  padding-inline: 4px;
+}
+
+/* ---------- 党组织架构图（图4） ---------- */
+.org-chart {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 20px 0 40px;
+}
+
+.org-chart ul {
+  display: flex;
+  justify-content: center;
+  padding-top: 24px;
+  position: relative;
+  margin: 0;
+  list-style: none;
+}
+
+.org-chart li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 24px 12px 0;
+  list-style: none;
+}
+
+/* 连接线：向下的竖线 */
+.org-chart li::before,
+.org-chart li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 24px;
+  border-top: 2px solid #c7000b;
+  width: 50%;
+}
+
+.org-chart li::before {
+  right: 50%;
+}
+
+.org-chart li::after {
+  left: 50%;
+  border-left: 2px solid #c7000b;
+}
+
+/* 独生子节点不需要横线 */
+.org-chart li:only-child::before,
+.org-chart li:only-child::after {
+  display: none;
+}
+
+.org-chart li:only-child {
+  padding-top: 0;
+}
+
+.org-chart li:first-child::before,
+.org-chart li:last-child::after {
+  border: 0 none;
+}
+
+.org-chart li:last-child::before {
+  border-right: 2px solid #c7000b;
+  border-radius: 0 6px 0 0;
+}
+
+.org-chart li:first-child::after {
+  border-radius: 6px 0 0 0;
+}
+
+.org-chart ul ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  border-left: 2px solid #c7000b;
+  width: 0;
+  height: 24px;
+}
+
+.org-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  padding: 0 0 12px;
+  width: 150px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  position: relative;
+  z-index: 1;
+}
+
+.org-node__photo {
+  width: 100%;
+  height: 118px;
+  background: linear-gradient(160deg, #c7000b 0%, #8f0007 100%);
+  border-radius: 9px 9px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 600;
+}
+
+.org-node__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 9px 9px 0 0;
+}
+
+.org-node__name {
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.org-node__org {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.org-node__badge {
+  margin-top: 8px;
+  padding: 2px 14px;
+  border-radius: 10px;
+  background: #c7000b;
+  color: #fff;
+  font-size: 12px;
+}
+
+/* ---------- 活动任务通知卡片 ---------- */
+.task-card {
+  background: #fff8f8;
+  border: 1px solid #ffe0e0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  height: 100%;
+  transition: box-shadow 0.2s;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 14px rgba(199, 0, 11, 0.1);
+}
+
+.task-card__field {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #262626;
+}
+
+.task-card__label {
+  color: #8c8c8c;
+}
+
+/* ---------- 登录页 ---------- */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #c7000b 0%, #8f0007 55%, #6b0005 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-page::after {
+  content: '';
+  position: absolute;
+  width: 720px;
+  height: 720px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  right: -220px;
+  bottom: -280px;
+}
+
+.login-card {
+  width: 420px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 40px 36px 32px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.26);
+  position: relative;
+  z-index: 2;
+}
+
+.login-card__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #c7000b;
+  text-align: center;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.login-card__subtitle {
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 13px;
+  margin-bottom: 28px;
+}
+
+.login-card__captcha {
+  display: flex;
+  gap: 10px;
+}
+
+.login-card__captcha-img {
+  width: 118px;
+  height: 36px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  object-fit: cover;
+  background: #fafafa;
+}
+
+.login-card__tips {
+  margin-top: 18px;
+  padding: 10px 12px;
+  background: #fff8f8;
+  border: 1px solid #ffe0e0;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.9;
+}

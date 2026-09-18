@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.hparty</groupId>
+        <artifactId>hparty-server</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>hparty-party</artifactId>
+    <packaging>jar</packaging>
+    <name>hparty-party</name>
+    <description>党务域：三会一课、主题党日、组织生活会、党费、换届、党员教育管理等</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.hparty</groupId>
+            <artifactId>hparty-framework</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.hparty</groupId>
+        <artifactId>hparty-server</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>hparty-develop</artifactId>
+    <packaging>jar</packaging>
+    <name>hparty-develop</name>
+    <description>发展党员域：5 阶段 25 步流程引擎 + 规则策略</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.hparty</groupId>
+            <artifactId>hparty-framework</artifactId>
+        </dependency>
+        <!-- 需要读取 party_person / sys_dept / sys_user -->
+        <dependency>
+            <groupId>com.hparty</groupId>
+            <artifactId>hparty-system</artifactId>
+        </dependency>
+    </dependencies>
+</project>
