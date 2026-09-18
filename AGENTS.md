@@ -1,7 +1,15 @@
 # AGENTS.md — 智慧党建管理系统
 
 > 本文件是接手本项目的 AI 编码代理的**入口**。请先读完本文，再按「文档索引」深入。
-> 最后更新：2026-09-16
+> 最后更新：2026-09-17
+
+## 开始开发前
+
+人类和 AI 都必须遵守 [`CONTRIBUTING.md`](CONTRIBUTING.md)：先从最新 `dev` 新建工作分支，
+按下方文档索引核对要求；提交 PR 前在本地合并最新 `origin/dev`、解决全部冲突并验证，
+PR 目标为 `dev`，由管理员审核合并。不得直接向 `main` 或 `dev` 推送功能修改。
+AI 代理开始修改前先检查当前分支和工作区状态，不覆盖其他人或代理的未提交改动；
+无法完成验证时在 PR 中如实说明，不能宣称已通过。
 
 ## 这是什么
 
@@ -58,6 +66,7 @@ HPartySystem/
 
 | 文档 | 什么时候读 |
 |---|---|
+| `CONTRIBUTING.md` | **任何开发前必读**。分支、同步冲突、验证、PR 与管理员审核流程 |
 | `docs/01-系统设计.md` | **先读这份**。架构、权限模型、流程引擎设计思路、模块清单 |
 | `docs/02-入党流程25步定义.md` | 改发展党员相关代码前必读。25 步逐条定义（办理角色/期限/材料/规则） |
 | `docs/03-数据库设计.md` | 建表、加字段、写 SQL 前必读。49 张表的分组、关联、**贯穿全局的设计约定** |
@@ -87,7 +96,8 @@ HPartySystem/
 5. **接口的 `component` 字段（菜单表）必须是纯组件路径**，不能带查询串 —— 动态路由按
    组件文件名解析，带了就找不到文件、路由不注册、菜单变死链。筛选项由页面**从 URL 路径推导**。
 
-6. **实体改动后要同步检查 `docs/03-数据库设计.md` 与 `sql/01-schema.sql`。**
+6. **实体改动后要核对完整 Flyway 迁移链并同步 `docs/03-数据库设计.md`。**
+   `sql/01-schema.sql` 只记录初始结构，不能代替后续迁移。
 
 ## 当前状态
 
@@ -125,7 +135,7 @@ mvn -f hparty-server/pom.xml -pl hparty-develop -am test
 
 | 能力 | 实现 |
 |---|---|
-| **数据库版本管理** | Flyway，`db/migration/` 下 V1 建表 + V2 系统数据 |
+| **数据库版本管理** | Flyway，`db/migration/` 下 V1 建表、V2 系统数据及后续增量迁移 |
 | **密码策略** | `PasswordPolicy`：强度校验 + 首次登录强制改密 + 90 天过期；`POST /auth/changePassword` 自助改密 |
 | **定时任务** | `com.hparty.job.HPartyScheduledTasks`：党费账单生成、超期扫描、日志清理，均幂等 |
 | **生产配置** | `application-prod.yml`：SQL 日志关闭、Knife4j 关闭、日志落盘切割 |
@@ -170,18 +180,22 @@ npm install && npm run dev
 |---|---|
 | `V1__init_schema.sql` | 49 张表的建表语句 |
 | `V2__init_system_data.sql` | 菜单、角色、字典、发展党员阶段/步骤模板、材料模板、管理员账号 |
+| `V3__repair_party_secretary_permissions.sql` | 修复党委书记权限种子数据 |
+| `V4__grant_applicant_detail_permission.sql` | 补齐发展对象详情权限 |
+| `V5__develop_material_submission_permissions.sql` | 补齐发展材料提交权限 |
 
 **加表 / 加列 / 改索引的步骤**：
 
-1. 在 `db/migration/` 下新建 `V3__描述.sql`（版本号递增，写清用途）
+1. 查看已有迁移的最大版本号，在 `db/migration/` 下新增下一个版本的 `V<版本号>__描述.sql`（写清用途）
 2. 启动应用，Flyway 自动应用；`flyway_schema_history` 表可查执行记录
-3. 同步更新 `docs/03-数据库设计.md`
+3. 同步更新 `docs/03-数据库设计.md`，并核对实体与 DDL
 
 两条约束：
 - **已应用过的迁移文件不能再改** —— `validate-on-migrate: true` 会校验文件校验和，
   改了会导致启动失败。要修正只能新增一个迁移。
 - `sql/01-schema.sql` 与 `sql/02-init-system.sql` 现在只是**可读的参考副本**，
-  与 V1/V2 内容一致但不参与执行。改结构请改迁移文件，别改它们。
+  对应 V1/V2 的初始内容，不参与执行。后续结构与系统数据变化以完整迁移链为准，
+  不要为新变更改写这两个参考副本。
 
 对于「已有数据但没有迁移历史」的老库（比如从更早版本升级上来的），
 `baseline-on-migrate: true` + `baseline-version: 2` 会自动打基线，

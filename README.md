@@ -28,7 +28,7 @@ HPartySystem/
 │   └── hparty-admin/             启动模块
 ├── hparty-web/                   前端（React + TS + Vite）
 ├── sql/
-│   ├── 01-schema.sql             建表（43 张）
+│   ├── 01-schema.sql             初始建表参考（49 张，不参与迁移）
 │   ├── 02-init-system.sql        菜单、角色、字典、阶段与步骤模板、管理员
 │   └── 03-init-demo.sql          演示数据
 ├── scripts/
@@ -43,6 +43,7 @@ HPartySystem/
 | 文档 | 内容 |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | **入口**。项目概览、硬性约定、当前状态、踩过的坑 |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | **人类和 AI 共用**。从 `dev` 建分支、解决冲突、提交 PR 与审核 |
 | [`docs/01-系统设计.md`](docs/01-系统设计.md) | 架构、技术选型、权限模型、流程引擎设计思路 |
 | [`docs/02-入党流程25步定义.md`](docs/02-入党流程25步定义.md) | 25 步逐条定义（办理角色/期限/材料/规则） |
 | [`docs/03-数据库设计.md`](docs/03-数据库设计.md) | 49 张表的分组、关联、贯穿全局的设计约定 |
@@ -64,8 +65,8 @@ mysql -u root -p -e "CREATE DATABASE hparty DEFAULT CHARACTER SET utf8mb4;"
 需要 MySQL 8 与 Redis 已启动。数据库连接配置在 `hparty-server/hparty-admin/src/main/resources/application.yml`，默认 `root/123456`，可用环境变量 `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` / `REDIS_HOST` 覆盖。
 
 > **结构变更请新增迁移脚本**，不要手工 `ALTER`。迁移文件在
-> `hparty-server/hparty-admin/src/main/resources/db/migration/`（当前 V1 建表、V2 系统数据），
-> 新增 `V3__xxx.sql` 后启动即自动应用。详见 `AGENTS.md` 的「结构变更流程」。
+> `hparty-server/hparty-admin/src/main/resources/db/migration/`（V1/V2 为初始迁移，后续还有增量迁移），
+> 新增下一个版本的迁移脚本后启动即自动应用。详见 `AGENTS.md` 的「结构变更流程」。
 
 ### 2. 启动后端
 
@@ -132,7 +133,7 @@ dev_stage(5条)  →  dev_step(25条)  →  dev_step_record(动态记录)
 
 **关于双过半**：流程图规定「到会人数必须超过应到会有表决权人数的半数才能开会；赞成人数超过应到会有表决权的正式党员的半数才能通过」。两个半数的分母**都是「应到」而不是「实到」** —— 这里写错的话，到场人数越少反而越容易通过，与制度设计意图正好相反。
 
-新增或调整步骤只需改 `dev_step` 数据 + 必要时加一个策略类，主流程代码不动。
+新增或调整步骤应通过新的 Flyway 迁移更新 `dev_step` 数据，必要时增加策略类；主流程代码通常不动。
 
 ## 权限模型
 
@@ -143,11 +144,11 @@ dev_stage(5条)  →  dev_step(25条)  →  dev_step_record(动态记录)
 ## 开发约定
 
 - 模块依赖方向严格单向：`admin → develop/party/system → framework → common`，禁止反向依赖
-- 新增业务模块时，表结构补进 `sql/01-schema.sql`，权限标识补进 `sql/02-init-system.sql` 的 `sys_menu`
+- 新增业务模块时，用新的 Flyway 迁移增加表结构与 `sys_menu` 权限，并同步数据库设计与接口文档
 - 实体类继承 `com.hparty.common.core.BaseEntity`（含 5 个审计字段）；表中缺任一审计列则改为 `implements Serializable` 并自行声明
 - 列表查询调用 `DataScopeHelper.apply(wrapper)`；因 `LambdaQueryWrapper` 与 `QueryWrapper` 是兄弟类，该方法参数类型为 `AbstractWrapper`
 - 关键写操作加 `@OperLog(title="模块", businessType=...)` 记录审计日志
 
-## 已知待修
+## 生产上线待办
 
-`sys_user.username` / `sys_role.role_key` 为逻辑删除列 + 唯一键，删除账号后重建同名会在数据库层撞唯一键（应用的唯一性校验只看 `del_flag=0`）。需改为物理删除，或把 `del_flag` 并入唯一键。
+上线前的安全、配置与运维检查见 [`docs/06-生产上线清单.md`](docs/06-生产上线清单.md)。
