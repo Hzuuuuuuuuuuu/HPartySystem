@@ -227,6 +227,12 @@ npm install && npm run dev
   写成实到的话，到场人数越少反而越容易通过。见 `VoteRule`。
 - **`@OperLog` 注解可给 Controller 方法加操作审计**，成功与失败都会记录。
 
+- **列表批量补名称时，空结果别用 `Map.of()` 兜底。** 不可变空 Map 的 `get(null)` 会抛
+  `NullPointerException`（`Collections.emptyMap().get(null)` 才是返回 null），普通 `HashMap`
+  则允许 null 键。只有**整页记录都缺该字段**时才复现：`sys_user.org_id` 可为 NULL
+  （超级管理员没有归属组织），所以表现为「单独搜 admin 报空指针」。调用点显式判空即可，
+  详见 `docs/05-开发规范.md` 4.4 节。
+
 - **Windows 下必须先停后端再构建，否则会得到一个残缺的 jar。**
   后端在跑时文件被锁，`mvn clean install` 的 `repackage` 步骤会报
   `Unable to rename ...jar to ...jar.original`，**但 jar 文件仍然存在** ——

@@ -26,7 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -88,7 +90,15 @@ public class SysUserService {
                 .map(SysUser::getOrgId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet()));
-        return PageResult.of(result, user -> toVO(user, orgNames.get(user.getOrgId())));
+        Map<Long, List<String>> roleNames = loadRoleNamesByUser(result.getRecords().stream()
+                .map(SysUser::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet()));
+        return PageResult.of(result, user -> {
+            SysUserVO vo = toVO(user, lookupOrgName(orgNames, user.getOrgId()));
+            vo.setRoleNames(roleNames.getOrDefault(user.getUserId(), List.of()));
+            return vo;
+        });
     }
 
     /**
@@ -310,6 +320,36 @@ public class SysUserService {
                 .in("org_id", orgIds));
         return depts.stream().collect(Collectors.toMap(
                 SysDept::getOrgId, SysDept::getOrgName, (a, b) -> a));
+    }
+
+    /**
+     * 取组织名称，orgId 为 null 时直接返回 null。
+     *
+     * <p>必须显式判空：{@link #loadOrgNames} 在无组织可查时返回的是 {@code Map.of()}，
+     * 而不可变空 Map 的 {@code get(null)} 会抛 NullPointerException
+     * （{@code Collections.emptyMap().get(null)} 才是返回 null）。
+     * 超级管理员这类 {@code org_id} 为 NULL 的账号没有归属组织，
+     * 列表里只出现这类账号时就会命中该路径 —— 表现为「搜 admin 报空指针」。</p>
+     */
+    private String lookupOrgName(Map<Long, String> orgNames, Long orgId) {
+        return orgId == null ? null : orgNames.get(orgId);
+    }
+
+    /** 批量取「用户 → 角色名称」，避免逐行查库；无角色的用户不会出现在返回的 Map 中 */
+    private Map<Long, List<String>> loadRoleNamesByUser(Set<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, List<String>> result = new HashMap<>();
+        for (Map<String, Object> row : relationMapper.selectRoleNamesByUserIds(userIds)) {
+            Object userId = row.get("user_id");
+            Object roleName = row.get("role_name");
+            if (!(userId instanceof Number id) || roleName == null) {
+                continue;
+            }
+            result.computeIfAbsent(id.longValue(), k -> new ArrayList<>()).add(String.valueOf(roleName));
+        }
+        return result;
     }
 
     private List<String> loadRoleNames(Collection<Long> roleIds) {
