@@ -46,6 +46,8 @@ export default function DevelopApplicantPage() {
   const { message, modal } = AntdApp.useApp();
   const can = useUserStore((s) => s.can);
   const canViewDetail = can('develop:applicant:detail');
+  // 本人不能作为发展对象，列表里对应项置灰（后端同样有校验）
+  const selfPersonId = useUserStore((s) => s.userInfo?.personId);
 
   const [loading, setLoading] = useState(false);
   const [cards, setCards] = useState<DevApplicantCard[]>([]);
@@ -263,8 +265,11 @@ export default function DevelopApplicantPage() {
               optionFilterProp="label"
               disabled={!!editing}
               options={persons.map((p) => ({
-                label: `${p.name}${p.orgName ? `（${p.orgName}）` : ''}`,
+                label: `${p.name}${p.orgName ? `（${p.orgName}）` : ''}${
+                  p.personId === selfPersonId ? '（本人，不可选）' : ''
+                }`,
                 value: p.personId,
+                disabled: p.personId === selfPersonId,
               }))}
             />
           </Form.Item>

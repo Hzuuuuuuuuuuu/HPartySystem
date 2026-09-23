@@ -617,6 +617,16 @@ public class DevApplicantService {
     @Transactional(rollbackFor = Exception.class)
     public Long add(DevApplicantDTO dto) {
         /*
+         * 不允许把本人纳入发展流程：发展对象由组织指定，本人不得自报自审。
+         * 页面已把「本人」选项置灰，这里兜住绕过页面直接调接口的情况。
+         * 账号未关联人员档案（personId 为 null，如纯管理账号）时本校验不生效。
+         */
+        Long selfPersonId = SecurityUtils.getPersonId();
+        if (selfPersonId != null && selfPersonId.equals(dto.getPersonId())) {
+            throw new BizException("不能将本人添加为发展对象");
+        }
+
+        /*
          * 唯一性检查必须**含逻辑删除的行**。
          *
          * uk_applicant_person(person_id) 建在 person_id 单列上，被逻辑删除的行
