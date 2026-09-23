@@ -7,8 +7,8 @@ import {
   UserAddOutlined,
   ApartmentOutlined,
   RiseOutlined,
-  StarFilled,
 } from '@ant-design/icons';
+import logo from '@/assets/logo.png';
 import { getStatistics, STAGE_COLORS, type DevApplicantCard } from '@/api/develop';
 import { pageApplicants } from '@/api/develop';
 import { getPersonStatistics } from '@/api/system';
@@ -69,15 +69,13 @@ export default function DashboardPage() {
                 width: 52,
                 height: 52,
                 borderRadius: '50%',
-                background: 'rgba(255,255,255,.16)',
+                background: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 26,
-                color: '#FFD700',
               }}
             >
-              <StarFilled />
+              <img src={logo} alt="logo" style={{ width: 44, height: 44, objectFit: 'contain' }} />
             </div>
           </Col>
           <Col flex="auto">
@@ -91,7 +89,7 @@ export default function DashboardPage() {
           </Col>
           <Col flex="none">
             <Tag color="rgba(255,255,255,.2)" style={{ color: '#fff', border: 'none', borderRadius: 10 }}>
-              网上共青团 · 智慧党建
+              智慧党建
             </Tag>
           </Col>
         </Row>

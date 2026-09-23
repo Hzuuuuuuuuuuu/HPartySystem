@@ -6,8 +6,8 @@ import {
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  StarFilled,
 } from '@ant-design/icons';
+import logo from '@/assets/logo.png';
 import { useUserStore } from '@/store/user';
 import { collectLeafTitles, findOpenKeys, toMenuItems } from './menuUtils';
 
@@ -91,7 +91,7 @@ export default function MainLayout() {
       >
         <div className="hparty-logo">
           <div className="hparty-logo__emblem">
-            <StarFilled />
+            <img src={logo} alt="logo" />
           </div>
           <div className="hparty-logo__org">[{userInfo?.orgName ?? '未分配组织'}]</div>
         </div>
@@ -119,8 +119,8 @@ export default function MainLayout() {
               {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             </span>
             <div className="hparty-header__brand">
-              <StarFilled className="hparty-header__brand-icon" />
-              <span>网上共青团 · 智慧党建</span>
+              <img src={logo} alt="logo" className="hparty-header__brand-icon" />
+              <span>智慧党建</span>
             </div>
           </div>
 

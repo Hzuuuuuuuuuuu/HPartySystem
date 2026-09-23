@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Form, Input, App as AntdApp } from 'antd';
-import { LockOutlined, SafetyOutlined, UserOutlined, StarFilled } from '@ant-design/icons';
+import { LockOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons';
+import logo from '@/assets/logo.png';
 import { getCaptcha, type CaptchaVO } from '@/api/auth';
 import { useUserStore } from '@/store/user';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
@@ -87,20 +88,18 @@ export default function LoginPage() {
               height: 60,
               margin: '0 auto 14px',
               borderRadius: '50%',
-              background: '#C7000B',
+              background: '#fff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 30,
-              color: '#FFD700',
             }}
           >
-            <StarFilled />
+            <img src={logo} alt="logo" style={{ width: 52, height: 52, objectFit: 'contain' }} />
           </div>
         </div>
 
         <div className="login-card__title">智慧党建管理系统</div>
-        <div className="login-card__subtitle">网上共青团 · 智慧党建</div>
+        <div className="login-card__subtitle">智慧党建</div>
 
         <Form form={form} size="large" onFinish={onFinish} autoComplete="off">
           <Form.Item name="username" rules={[{ required: true, message: '请输入登录账号' }]}>
