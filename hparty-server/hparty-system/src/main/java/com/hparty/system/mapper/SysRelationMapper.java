@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Select;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 关联表 Mapper。
@@ -25,6 +26,28 @@ public interface SysRelationMapper {
     /** 查询用户已分配的角色 ID */
     @Select("SELECT role_id FROM sys_user_role WHERE user_id = #{userId}")
     List<Long> selectRoleIdsByUserId(@Param("userId") Long userId);
+
+    /**
+     * 批量：用户 ID → 角色名称，供用户列表补全「角色」列。
+     *
+     * <p>列表页一屏十几行，逐行调用 {@link #selectRoleIdsByUserId} 会变成 N+1 查询，
+     * 因此一次性按 user_id 批量取。返回值沿用跨表批量查询的
+     * {@code List<Map<String, Object>>} 形式，键为 {@code user_id} / {@code role_name}。</p>
+     *
+     * <p>过滤条件只排除已删除的角色：停用（status=0）的角色仍然返回，
+     * 因为「这个账号挂着哪些角色」属于现状，列表要如实展示。</p>
+     */
+    @Select("""
+            <script>
+            SELECT ur.user_id, r.role_name
+            FROM sys_user_role ur
+            JOIN sys_role r ON r.role_id = ur.role_id AND r.del_flag = 0
+            WHERE ur.user_id IN
+            <foreach collection="userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            ORDER BY ur.user_id, r.role_sort, r.role_id
+            </script>
+            """)
+    List<Map<String, Object>> selectRoleNamesByUserIds(@Param("userIds") Collection<Long> userIds);
 
     /** 清空用户的角色关联 */
     @Delete("DELETE FROM sys_user_role WHERE user_id = #{userId}")

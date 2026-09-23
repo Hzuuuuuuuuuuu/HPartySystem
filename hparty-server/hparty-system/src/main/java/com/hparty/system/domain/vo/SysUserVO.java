@@ -81,11 +81,11 @@ public class SysUserVO implements Serializable {
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
-    /** 已分配角色 ID 集合，仅详情接口返回 */
+    /** 已分配角色 ID 集合，仅详情接口返回（编辑回填用） */
     @Schema(description = "已分配角色 ID 集合，仅详情接口返回")
     private List<Long> roleIds;
 
-    /** 已分配角色名称集合，仅详情接口返回 */
-    @Schema(description = "已分配角色名称集合，仅详情接口返回")
+    /** 已分配角色名称集合，列表与详情接口都返回（列表「角色」列展示用） */
+    @Schema(description = "已分配角色名称集合，列表与详情接口都返回")
     private List<String> roleNames;
 }
