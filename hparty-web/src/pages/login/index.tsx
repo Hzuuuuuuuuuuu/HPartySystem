@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button, Form, Input, App as AntdApp } from 'antd';
 import { LockOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons';
 import logo from '@/assets/logo.png';
@@ -134,6 +134,15 @@ export default function LoginPage() {
             <Button type="primary" htmlType="submit" loading={loading} block size="large">
               登 录
             </Button>
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <div style={{ textAlign: 'center' }}>
+              还没有账号？
+              <Link to="/register" style={{ marginLeft: 8 }}>
+                立即注册
+              </Link>
+            </div>
           </Form.Item>
         </Form>
 

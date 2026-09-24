@@ -29,6 +29,9 @@ public final class Constants {
     /** 停用状态 */
     public static final int STATUS_DISABLED = 0;
 
+    /** 待审核状态 */
+    public static final int STATUS_PENDING = 2;
+
     /** 是 */
     public static final int YES = 1;
 

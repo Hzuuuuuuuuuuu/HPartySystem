@@ -15,7 +15,7 @@ body {
     'Helvetica Neue', Arial, sans-serif;
   background: #f5f5f5;
   color: #262626;
-  overflow: hidden;
+  overflow: auto;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -582,12 +582,14 @@ body {
 /* ---------- 登录页 ---------- */
 .login-page {
   min-height: 100vh;
+  height: auto;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   background: linear-gradient(135deg, #c7000b 0%, #8f0007 55%, #6b0005 100%);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  padding: 40px 20px 60px;
 }
 
 .login-page::after {
@@ -603,12 +605,14 @@ body {
 
 .login-card {
   width: 420px;
+  max-width: 100%;
   background: #fff;
   border-radius: 14px;
   padding: 40px 36px 32px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.26);
   position: relative;
   z-index: 2;
+  margin: 0 auto;
 }
 
 .login-card__title {
@@ -644,6 +648,7 @@ body {
 
 .login-card__tips {
   margin-top: 18px;
+  margin-bottom: 0;
   padding: 10px 12px;
   background: #fff8f8;
   border: 1px solid #ffe0e0;
