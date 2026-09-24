@@ -7,6 +7,7 @@ import {
   Empty,
   Form,
   Input,
+  InputNumber,
   Modal,
   Row,
   Select,
@@ -310,13 +311,34 @@ export default function PartyDayPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="shouldAttend" label="应到人数">
-                <Input type="number" />
+              <Form.Item
+                name="shouldAttend"
+                label="应到人数"
+                rules={[{ required: true, message: '请填写应到人数' }]}
+              >
+                <InputNumber min={1} precision={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="actualAttend" label="实到人数">
-                <Input type="number" />
+              <Form.Item
+                name="actualAttend"
+                label="实到人数"
+                dependencies={['shouldAttend']}
+                rules={[
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const should = getFieldValue('shouldAttend');
+                      if (value != null && should != null && Number(value) > Number(should)) {
+                        return Promise.reject(
+                          new Error(`实到人数不能大于应到人数（${should}）`),
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  }),
+                ]}
+              >
+                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             <Col span={12}>
