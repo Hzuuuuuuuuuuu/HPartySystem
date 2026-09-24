@@ -24,10 +24,12 @@ import {
   MoneyCollectOutlined,
   NotificationOutlined,
   PartitionOutlined,
+  ProfileOutlined,
   QuestionCircleOutlined,
   ReadOutlined,
   RiseOutlined,
   SafetyOutlined,
+  ScheduleOutlined,
   SettingOutlined,
   SolutionOutlined,
   SwapOutlined,
@@ -51,7 +53,9 @@ import {
  *
  * <p>图标名的权威来源是：
  * <ul>
- *   <li>{@code sql/02-init-system.sql} 里 {@code sys_menu.icon} 的取值</li>
+ *   <li>Flyway 迁移 {@code db/migration/V2__init_system_data.sql} 中
+ *       {@code sys_menu.icon} 的取值 —— 注意 {@code sql/02-init-system.sql} 只是
+ *       可读副本、不参与执行，改它不会生效</li>
  *   <li>{@code hparty-common} 的 {@code MaterialCategory} 枚举里的 icon 字段</li>
  * </ul>
  * 改这两处时记得同步本文件。</p>
@@ -81,10 +85,12 @@ export const ICON_REGISTRY: Record<string, ComponentType> = {
   MoneyCollectOutlined,
   NotificationOutlined,
   PartitionOutlined,
+  ProfileOutlined,
   QuestionCircleOutlined,
   ReadOutlined,
   RiseOutlined,
   SafetyOutlined,
+  ScheduleOutlined,
   SettingOutlined,
   SolutionOutlined,
   SwapOutlined,

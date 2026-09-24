@@ -104,6 +104,7 @@ public class AmMeetingService {
         if (StrUtil.isBlank(meeting.getTitle())) {
             throw new BizException("请填写会议标题");
         }
+        validateAttendeeCount(meeting.getShouldAttend(), meeting.getActualAttend());
         meeting.setMeetingId(null);
         if (meeting.getOrgId() == null) {
             meeting.setOrgId(SecurityUtils.getOrgId());
@@ -121,8 +122,43 @@ public class AmMeetingService {
             throw new BizException("会议ID不能为空");
         }
         AmMeeting exists = get(meeting.getMeetingId());
+        // 未提交的字段不会被覆盖（MyBatis-Plus 默认 NOT_NULL 策略），
+        // 因此以「请求值 ?? 库中现值」作为有效值参与校验
+        validateAttendeeCount(
+                meeting.getShouldAttend() != null ? meeting.getShouldAttend() : exists.getShouldAttend(),
+                meeting.getActualAttend() != null ? meeting.getActualAttend() : exists.getActualAttend());
         meeting.setOrgId(exists.getOrgId());
         meetingMapper.updateById(meeting);
+    }
+
+    /**
+     * 校验应到 / 实到人数。
+     *
+     * <p>口径与 {@code VoteRule} 一致（同为「应到会有表决权的正式党员数 / 实到人数」）：
+     * 应到必须填写且大于 0；实到不得为负；实到不得超过应到。</p>
+     *
+     * <p>这三个约束原先只在 {@code VoteRule}（发展党员支部大会投票）里存在，
+     * 会议接口此前把请求体直接绑到实体、没有任何校验，导致可以把人数改成
+     * 0、负数甚至「实到大于应到」。</p>
+     *
+     * @param shouldAttend 应到人数；新增时必填，修改时为「请求值 ?? 库中现值」
+     * @param actualAttend 实到人数；为空按 0 处理（会议可能尚未召开）
+     */
+    private void validateAttendeeCount(Integer shouldAttend, Integer actualAttend) {
+        if (shouldAttend == null) {
+            throw new BizException("请填写应到人数");
+        }
+        if (shouldAttend <= 0) {
+            throw new BizException("应到人数必须大于 0");
+        }
+        int actual = actualAttend == null ? 0 : actualAttend;
+        if (actual < 0) {
+            throw new BizException("实到人数不能为负数");
+        }
+        if (actual > shouldAttend) {
+            throw new BizException(String.format(
+                    "实到人数（%d）不能大于应到人数（%d）", actual, shouldAttend));
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
