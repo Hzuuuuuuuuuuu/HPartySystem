@@ -1,25 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Col, Empty, Row, Spin, Upload, App as AntdApp } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import { http } from '@/api/request';
-
-interface AmTask {
-  taskId: number;
-  title: string;
-  taskType: string;
-  publishOrgName?: string;
-  activityName?: string;
-  content?: string;
-  startDate?: string;
-  endDate?: string;
-  deadline?: string;
-  status?: number;
-}
+import { listTasks, submitTaskMaterial, type AmTask } from '@/api/task';
 
 /**
  * 活动任务通知（还原图1 底部的四张任务卡）。
  *
  * 每张卡展示发布单位、活动名称、活动内容、活动时间，右下角提供「上传资料」按钮。
+ * 只展示「已发布」的任务，故固定 status=1。
  */
 export default function TaskNoticeList() {
   const { message } = AntdApp.useApp();
@@ -29,7 +17,7 @@ export default function TaskNoticeList() {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const res = await http.get<AmTask[]>('/party/task/list', { status: 1 });
+      const res = await listTasks({ status: 1 });
       setTasks(res ?? []);
     } catch {
       setTasks([]);
@@ -43,11 +31,8 @@ export default function TaskNoticeList() {
   }, []);
 
   const upload = async (taskId: number, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('taskId', String(taskId));
     try {
-      await http.upload('/party/task/submit', formData);
+      await submitTaskMaterial(taskId, file);
       message.success('资料上传成功');
       fetchTasks();
     } catch {
