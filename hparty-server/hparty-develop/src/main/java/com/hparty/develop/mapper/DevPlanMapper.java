@@ -32,8 +32,13 @@ public interface DevPlanMapper extends BaseMapper<DevPlan> {
      * <p>给「未分配所属组织」的账号（如超级管理员）查询计划进度时兜底用 ——
      * 党委的计划通过指标分解覆盖了下辖各支部，正是「整体进度」的自然视角。
      * 系统按单棵党组织树设计（见 docs/01-系统设计.md 第 9 节），因此根组织只有一个。</p>
+     *
+     * <p>排除管理节点（{@code OrgType.ADMIN_NODE}，{@code org_type = 9}）：它是超管的
+     * 归属节点、也是 {@code parent_id = 0} 的独立根，不能算作本系统的党组织树根。
+     * 这里的 {@code <>} 用在 SELECT 上，不受 {@code BlockAttackInnerInterceptor}
+     * 对 UPDATE 的限制。</p>
      */
-    @Select("SELECT org_id FROM sys_dept WHERE parent_id = 0 AND del_flag = 0 "
+    @Select("SELECT org_id FROM sys_dept WHERE parent_id = 0 AND del_flag = 0 AND org_type <> 9 "
             + "ORDER BY org_id LIMIT 1")
     Long selectRootOrgId();
 

@@ -96,6 +96,8 @@ public class AmTaskService {
             // 不允许把任务挂到别人名下
             throw BizException.forbidden("无权操作其他党组织的任务");
         }
+        // 无归属组织的账号提前拦下：publish_org_id 为 null 会被数据库 NOT NULL 约束拒绝（MySQL 1364）。
+        BizException.throwIf(task.getPublishOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (StrUtil.isBlank(task.getPublishOrgName())) {
             task.setPublishOrgName(lookupMapper.selectOrgName(task.getPublishOrgId()));
         }
@@ -158,6 +160,8 @@ public class AmTaskService {
         AmTaskSubmit submit = new AmTaskSubmit();
         submit.setTaskId(taskId);
         submit.setOrgId(SecurityUtils.getOrgId());
+        // 无归属组织的账号提前拦下：am_task_submit.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(submit.getOrgId() == null, "当前账号未分配所属党组织，无法提交。");
         submit.setFileId(fileId);
         submit.setFileUrl(fileUrl);
         submit.setRemark(remark);

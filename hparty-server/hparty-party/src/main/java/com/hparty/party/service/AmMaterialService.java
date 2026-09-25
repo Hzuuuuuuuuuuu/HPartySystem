@@ -86,6 +86,8 @@ public class AmMaterialService {
         if (material.getOrgId() == null) {
             material.setOrgId(user.getOrgId());
         }
+        // 无归属组织的账号提前拦下：am_material.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(material.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         material.setUploadBy(user.getPersonId());
         material.setUploadName(user.getNickName() == null ? user.getUsername() : user.getNickName());
         materialMapper.insert(material);

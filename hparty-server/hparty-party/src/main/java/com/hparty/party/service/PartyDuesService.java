@@ -98,6 +98,8 @@ public class PartyDuesService {
         if (record.getOrgId() == null) {
             record.setOrgId(SecurityUtils.getOrgId());
         }
+        // 无归属组织的账号提前拦下：party_dues_record.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(record.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (StrUtil.isBlank(record.getPersonName())) {
             record.setPersonName(lookupMapper.selectPersonName(record.getPersonId()));
         }
@@ -291,6 +293,8 @@ public class PartyDuesService {
         if (use.getOrgId() == null) {
             use.setOrgId(SecurityUtils.getOrgId());
         }
+        // 无归属组织的账号提前拦下：party_dues_use.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(use.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (use.getUseYear() == null) {
             use.setUseYear(LocalDate.now().getYear());
         }

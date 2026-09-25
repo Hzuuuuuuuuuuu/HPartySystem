@@ -96,6 +96,8 @@ public class DisciplineStudyService {
         if (study.getOrgId() == null) {
             study.setOrgId(SecurityUtils.getOrgId());
         }
+        // 无归属组织的账号提前拦下：discipline_study.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(study.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (study.getStudyType() == null) {
             study.setStudyType(DisciplineStudyTypeEnum.REGULATION.getCode());
         }
