@@ -105,6 +105,8 @@ public class OrgElectionService {
         if (election.getOrgId() == null) {
             election.setOrgId(SecurityUtils.getOrgId());
         }
+        // 无归属组织的账号提前拦下：org_election.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(election.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (election.getElectionType() == null) {
             election.setElectionType(ElectionTypeEnum.REGULAR.getCode());
         }

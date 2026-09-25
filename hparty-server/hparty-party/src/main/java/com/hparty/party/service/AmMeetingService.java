@@ -109,6 +109,9 @@ public class AmMeetingService {
         if (meeting.getOrgId() == null) {
             meeting.setOrgId(SecurityUtils.getOrgId());
         }
+        // 无归属组织的账号（未指派组织的管理账号）提前拦下：org_id 为 null 会被数据库
+        // 的 NOT NULL 约束拒绝（MySQL 1364），前端只拿到无信息量的 500。
+        BizException.throwIf(meeting.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (meeting.getStatus() == null) {
             meeting.setStatus(0);
         }
