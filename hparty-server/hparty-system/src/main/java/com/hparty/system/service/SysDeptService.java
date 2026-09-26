@@ -65,6 +65,9 @@ public class SysDeptService {
         wrapper.eq(query.getOrgType() != null, "org_type", query.getOrgType());
         wrapper.eq(query.getStatus() != null, "status", query.getStatus());
         wrapper.eq(query.getParentId() != null, "parent_id", query.getParentId());
+        // 管理节点（超管归属，OrgType.ADMIN_NODE）不是党组织，不对外展示。
+        // 这里是 SELECT，`.ne` 不受 BlockAttackInnerInterceptor 的 UPDATE 限制。
+        wrapper.ne("org_type", OrgType.ADMIN_NODE.getCode());
 
         // sys_dept 的行标识就是 org_id，没有 person_id 列，personColumn 传 null
         // （否则「仅本人」数据范围的用户会生成 WHERE person_id = ? 而报 Unknown column）
@@ -82,14 +85,18 @@ public class SysDeptService {
 
     /**
      * 组织架构树（图 4）。
-     * <p>返回全量组织，供组织架构图渲染与「上级组织」下拉选择使用，不做数据权限过滤 ——
+     * <p>返回全量党组织，供组织架构图渲染与「上级组织」下拉选择使用，不做数据权限过滤 ——
      * 树一旦被裁剪，父节点缺失会导致整棵子树挂不上根。需要按权限看数据时请使用
      * {@link #listDept(SysDeptQuery)}。</p>
+     *
+     * <p>管理节点（{@link OrgType#ADMIN_NODE}）被排除：它不是党组织，也不该被选作
+     * 任何组织的上级，否则真实组织会挂到它下面、破坏单棵党组织树。</p>
      *
      * @return 根节点集合
      */
     public List<SysDeptTreeVO> listDeptTree() {
         List<SysDept> depts = deptMapper.selectList(new QueryWrapper<SysDept>()
+                .ne("org_type", OrgType.ADMIN_NODE.getCode())
                 .orderByAsc("order_num")
                 .orderByAsc("org_id"));
         return buildTree(depts);
@@ -285,6 +292,10 @@ public class SysDeptService {
         BizException.throwIf(orgId == null, "组织ID不能为空");
         SysDept dept = deptMapper.selectById(orgId);
         BizException.throwIf(dept == null, "党组织不存在");
+        // 管理节点由 Flyway 迁移维护（OrgType.ADMIN_NODE），不能在界面上查看、改名或删除。
+        // 尤其删除：它会带走超管的归属组织，让超管的新增业务数据重新撞 NOT NULL 约束。
+        BizException.throwIf(Objects.equals(dept.getOrgType(), OrgType.ADMIN_NODE.getCode()),
+                "管理节点由系统维护，不可查看、修改或删除");
         return dept;
     }
 

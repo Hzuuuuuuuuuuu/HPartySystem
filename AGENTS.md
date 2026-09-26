@@ -124,12 +124,25 @@ mvn -f hparty-server/pom.xml -pl hparty-develop -am test
 周期性步骤的起算点取首次而非最后一次、超期只 WARN 不 REJECT。测试变红时先确认
 是不是把有意为之的设计改掉了，见 `docs/01-系统设计.md` 5.4 节。
 
+**接口层有集成回归测试**：`hparty-server/hparty-admin/src/test/java/com/hparty/` 下用
+`@SpringBootTest` + MockMvc 打通「登录 → 鉴权 → Service → 落库」整条链路，当前覆盖
+超管管理节点、数据权限越权、文件预览、发展党员材料提交、活动任务 CRUD 等场景。
+**改这几个模块后必须跑全量**：
+
+```bash
+mvn -f hparty-server/pom.xml test
+```
+
+给这批用例**新增**属性前先读「踩过的坑」里 `OrgPathResolver` 那条：多一组属性就可能
+让别的用例变红。公共覆盖项统一写在 `hparty-admin/src/test/resources/config/application.yml`。
+
 其余保障手段：
 - `scripts/verify-fixes.sh` —— 16 项缺陷回归检查（会改数据，跑完需用 `sql/03-init-demo.sql` 复位）
 - 接口文档 `http://localhost:8080/api/doc.html`（Knife4j，可在线调试）
 
-**仍未覆盖**：Service 层与 Controller 层、前端全部、以及 `DevFlowService` 的
-推进/驳回/终止三条流转分支（只有集成层面验证过）。
+**仍未覆盖**：`DevFlowService` 的推进/驳回/终止三条流转分支（只有集成层面验证过）、
+以及**前端全部** —— 前端没有自动化用例，只保证 `npx tsc --noEmit` 与 `npm run build` 通过。
+Service / Controller 层**尚未逐接口覆盖**，上面那批集成回归只覆盖了它点名的场景。
 
 ### 已具备的生产化能力
 
@@ -141,6 +154,19 @@ mvn -f hparty-server/pom.xml -pl hparty-develop -am test
 | **生产配置** | `application-prod.yml`：SQL 日志关闭、Knife4j 关闭、日志落盘切割 |
 | **越权防护** | 列表用 `DataScopeHelper.apply`，按主键的操作用 `canAccessOrg` |
 | **操作审计** | `@OperLog` 注解 + 切面，成功与失败都留痕 |
+
+### 已知待修缺陷
+
+以下均为 **2026-09-25 记录、未修复**，全部集中在发展党员模块。动这个模块前先读对应章节，
+注意其中「已核实」是静态复核结论，**不等于已在运行态复现**，修复前需先补复现信息。
+
+- **权限等级与实际可做操作不符** —— 用户报告普通成员可进行「同意申请」一类越级操作。
+  静态核实定位到 `DevFlowService.checkHandlePermission` 的 fail-open 分支等**两处**
+  结构性风险点；但按种子数据推演，普通党员本不该有该权限，差异待查。
+  见 [`docs/08-全系统回归巡检报告.md`](docs/08-全系统回归巡检报告.md) 第 16 节。
+- **新增发展对象缺少人员身份校验与跨组织约束** —— 选人列表看不出对方是否已是党员、
+  可越级添加、且已是党员也能被纳入发展流程。前一条改前端即可，后两条**必须加后端校验**。
+  见第 17 节。
 
 ### 尚未实现
 
@@ -205,7 +231,7 @@ npm install && npm run dev
 
 | 账号 | 角色 | 用途 |
 |---|---|---|
-| `admin` | 超级管理员 | 全部权限。**注意：它的 `org_id` 是 NULL，无法创建发展对象**（没有归属组织） |
+| `admin` | 超级管理员 | 全部权限。归属组织是 V6 迁移建的**管理节点**（`org_type=9`），因此各模块的新增都不再受「无归属组织」影响 |
 | `zgq` | 郑州市党委书记 | **走完整 25 步必须用它** —— 有 6 步由「上级党委」办理 |
 | `zsf` / `zw` | 第一/第二支部书记 | |
 | `liming` | 组织委员 | 发展党员主要办理人 |
@@ -230,7 +256,8 @@ npm install && npm run dev
 - **列表批量补名称时，空结果别用 `Map.of()` 兜底。** 不可变空 Map 的 `get(null)` 会抛
   `NullPointerException`（`Collections.emptyMap().get(null)` 才是返回 null），普通 `HashMap`
   则允许 null 键。只有**整页记录都缺该字段**时才复现：`sys_user.org_id` 可为 NULL
-  （超级管理员没有归属组织），所以表现为「单独搜 admin 报空指针」。调用点显式判空即可，
+  （超管原先没有归属组织，V6 起挂到管理节点，但该列依旧可空），历史上表现为
+  「单独搜 admin 报空指针」。调用点显式判空即可，
   详见 `docs/05-开发规范.md` 4.4 节。
 
 - **Windows 下必须先停后端再构建，否则会得到一个残缺的 jar。**
@@ -279,3 +306,16 @@ npm install && npm run dev
 
   **注意**：不要为了图省事把拦截器摘掉 —— 它能挡住真正的全表更新，
   在党费、党员这类数据上误写一次后果严重。
+
+- **`OrgPathResolver` 把构造注入的 `DataScopeMapper` 存进了 `static` 字段，测试里会被
+  「最后创建的 ApplicationContext」抢走。** 生产只有一个上下文所以看不出问题，但集成测试
+  每多一组**不同的** `@SpringBootTest(properties = ...)` 就会多建一个上下文连带一个连接池，
+  后建的把静态字段覆盖掉，先建的上下文随后就拿到**别人的**连接池 —— 表现为查不到本事务里
+  尚未提交的数据（例如刚插入的 `sys_role_dept` 行），不相干的越权用例莫名 403。
+  实测：只加一个带独立属性的新用例类，就能让 `DataScopeEndpointRegressionTest` 变红。
+
+  **规避**：集成测试的属性集合尽量统一，公共覆盖项放
+  `hparty-admin/src/test/resources/config/application.yml`。注意放
+  `src/test/resources/application.properties` 是**压不住** main 的 `application.yml` 的
+  （同目录 `.yml` 优先级更高，实测无效），必须放到 `config/` 子目录下才生效。
+  **根治办法**是把该静态字段改成普通依赖注入 —— 属独立改造，需同步改所有调用点。

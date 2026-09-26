@@ -106,6 +106,8 @@ public class ExcellentSelectionService {
         if (selection.getOrgId() == null) {
             selection.setOrgId(SecurityUtils.getOrgId());
         }
+        // 无归属组织的账号提前拦下：excellent_selection.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(selection.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (selection.getSelectionType() == null) {
             selection.setSelectionType(ExcellentTypeEnum.EXCELLENT_MEMBER.getCode());
         }

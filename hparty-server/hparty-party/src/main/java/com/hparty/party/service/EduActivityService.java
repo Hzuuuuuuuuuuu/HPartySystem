@@ -102,6 +102,8 @@ public class EduActivityService {
         if (activity.getOrgId() == null) {
             activity.setOrgId(SecurityUtils.getOrgId());
         }
+        // 无归属组织的账号提前拦下：edu_activity.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(activity.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (activity.getActivityType() == null) {
             activity.setActivityType(EduActivityTypeEnum.PARTY_LECTURE.getCode());
         }

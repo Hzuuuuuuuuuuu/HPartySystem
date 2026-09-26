@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hparty.common.constant.Constants;
 import com.hparty.common.core.PageResult;
 import com.hparty.common.enums.MemberStatus;
+import com.hparty.common.enums.OrgType;
 import com.hparty.common.exception.BizException;
 import com.hparty.framework.core.PageUtils;
 import com.hparty.framework.datascope.DataScopeHelper;
@@ -180,8 +181,10 @@ public class PartyPersonService {
         Long memberCount = personMapper.selectCount(memberWrapper);
         vo.setMemberCount(memberCount == null ? 0L : memberCount);
 
-        // 党组织数：口径与上面一致，都按当前用户可见的组织范围统计
+        // 党组织数：口径与上面一致，都按当前用户可见的组织范围统计。
+        // 管理节点（OrgType.ADMIN_NODE）是超管的归属节点而非党组织，不计入。
         QueryWrapper<SysDept> orgWrapper = new QueryWrapper<>();
+        orgWrapper.ne("org_type", OrgType.ADMIN_NODE.getCode());
         DataScopeHelper.apply(orgWrapper);
         Long orgCount = deptMapper.selectCount(orgWrapper);
         vo.setOrgCount(orgCount == null ? 0L : orgCount);

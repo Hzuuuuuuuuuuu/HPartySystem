@@ -97,6 +97,8 @@ public class MemberServiceService {
         if (service.getOrgId() == null) {
             service.setOrgId(SecurityUtils.getOrgId());
         }
+        // 无归属组织的账号提前拦下：member_service.org_id 是 NOT NULL（MySQL 1364）。
+        BizException.throwIf(service.getOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (service.getServiceType() == null) {
             service.setServiceType(ServiceTypeEnum.DIFFICULTY_HELP.getCode());
         }

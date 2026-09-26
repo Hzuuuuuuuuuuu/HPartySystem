@@ -32,7 +32,9 @@ DELETE FROM `sys_user_role` WHERE `user_id` > 1;
 DELETE FROM `sys_user` WHERE `user_id` > 1;
 DELETE FROM `party_group`;
 DELETE FROM `party_person`;
-DELETE FROM `sys_dept`;
+-- 只删真实党组织，保留 V6 建的管理节点（org_type = 9）：它是超管 admin 的归属组织，
+-- 一并删掉会让 admin.org_id 指向不存在的组织，admin 新增业务数据又会撞 NOT NULL 约束。
+DELETE FROM `sys_dept` WHERE `org_type` <> 9;
 
 -- =====================================================================
 --  一、党组织树

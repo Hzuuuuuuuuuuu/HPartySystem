@@ -96,6 +96,8 @@ public class AmTaskService {
             // 不允许把任务挂到别人名下
             throw BizException.forbidden("无权操作其他党组织的任务");
         }
+        // 无归属组织的账号提前拦下：publish_org_id 为 null 会被数据库 NOT NULL 约束拒绝（MySQL 1364）。
+        BizException.throwIf(task.getPublishOrgId() == null, "当前账号未分配所属党组织，无法创建。");
         if (StrUtil.isBlank(task.getPublishOrgName())) {
             task.setPublishOrgName(lookupMapper.selectOrgName(task.getPublishOrgId()));
         }
@@ -114,6 +116,13 @@ public class AmTaskService {
         // get 已做越权校验；同时把发布组织固定为库中原值，
         // 否则调用方可以通过修改 publishOrgId 把任务「过户」到别的组织
         AmTask exists = get(task.getTaskId());
+
+        // updateById 默认跳过 null 字段（FieldStrategy.NOT_NULL），所以 title 为 null 表示
+        // 「不改这一列」；但传空串会真的把标题清空。只拦「传了但为空」这种情况。
+        if (task.getTitle() != null && StrUtil.isBlank(task.getTitle())) {
+            throw new BizException("任务标题不能为空");
+        }
+
         task.setPublishOrgId(exists.getPublishOrgId());
         task.setPublishOrgName(exists.getPublishOrgName());
         taskMapper.updateById(task);
@@ -137,17 +146,33 @@ public class AmTaskService {
      *       这里只做登记，兼容旧调用方式。</li>
      * </ul>
      *
+     * <p>{@code file} / {@code fileId} / {@code fileUrl} 三者不能同时为空：接口语义是
+     * 「上传资料」，早期版本允许三者全空，会静默落一条没有任何附件的提交记录，
+     * 既没有内容也无法核对。</p>
+     *
      * @param taskId  任务ID
-     * @param file    上传的文件，可为空
+     * @param file    上传的文件，可为空（但不能与另外两个参数同时为空）
      * @param fileId  已上传文件的ID，可为空
      * @param fileUrl 已上传文件的URL，可为空
      * @param remark  备注
      * @return 提交记录ID
+     * @throws BizException 任务不存在、无权操作该任务、当前账号无归属组织，或三个附件参数全为空
      */
     @Transactional(rollbackFor = Exception.class)
     public Long submit(Long taskId, MultipartFile file, Long fileId, String fileUrl, String remark) {
-        // get 内含组织越权校验
+        // get 内含组织越权校验；顺序为 存在性/越权 → 身份 → 内容，
+        // 前者优先可避免用错误信息的差异探测别的组织是否存在某个任务
         AmTask task = get(taskId);
+
+        // 无归属组织的账号提前拦下：am_task_submit.org_id 是 NOT NULL（MySQL 1364）。
+        // 这一条必须排在文件落盘之前 —— 否则会先写盘再抛异常，事务回滚掉 sys_file 记录，
+        // 磁盘上的文件却留了下来，成为无人引用的垃圾。
+        Long submitOrgId = SecurityUtils.getOrgId();
+        BizException.throwIf(submitOrgId == null, "当前账号未分配所属党组织，无法提交。");
+
+        if ((file == null || file.isEmpty()) && fileId == null && StrUtil.isBlank(fileUrl)) {
+            throw new BizException("请上传任务材料后再提交");
+        }
 
         if (file != null && !file.isEmpty()) {
             FileStorage.StoredFile stored = fileStorage.store(file, TASK_BIZ_TYPE);
@@ -157,7 +182,7 @@ public class AmTaskService {
 
         AmTaskSubmit submit = new AmTaskSubmit();
         submit.setTaskId(taskId);
-        submit.setOrgId(SecurityUtils.getOrgId());
+        submit.setOrgId(submitOrgId);
         submit.setFileId(fileId);
         submit.setFileUrl(fileUrl);
         submit.setRemark(remark);
