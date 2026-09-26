@@ -3,6 +3,7 @@ package com.hparty.system.controller;
 import com.hparty.common.core.R;
 import com.hparty.system.domain.dto.ChangePasswordDTO;
 import com.hparty.system.domain.dto.LoginDTO;
+import com.hparty.system.domain.dto.RegisterDTO;
 import com.hparty.system.domain.vo.CaptchaVO;
 import com.hparty.system.domain.vo.LoginVO;
 import com.hparty.system.domain.vo.RouterVO;
@@ -32,6 +33,13 @@ public class AuthController {
     @GetMapping("/captcha")
     public R<CaptchaVO> captcha() {
         return R.ok(authService.captcha());
+    }
+
+    @Operation(summary = "用户注册", description = "入党申请人自助注册，创建人员档案和系统账号，需等待管理员审核")
+    @PostMapping("/register")
+    public R<Void> register(@Valid @RequestBody RegisterDTO dto) {
+        authService.register(dto);
+        return R.ok("注册成功！您的账号正在审核中，管理员审核通过后即可登录", null);
     }
 
     @Operation(summary = "账号密码登录")

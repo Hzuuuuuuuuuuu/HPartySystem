@@ -84,7 +84,22 @@ export default function AppRoutes() {
   if (!token) {
     return (
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/login"
+          element={
+            <Suspense fallback={<PageLoading />}>
+              <LoginPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <Suspense fallback={<PageLoading />}>
+              <RegisterPage />
+            </Suspense>
+          }
+        />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -132,6 +147,7 @@ export default function AppRoutes() {
 }
 
 const LoginPage = lazy(() => import('@/pages/login'));
+const RegisterPage = lazy(() => import('@/pages/register'));
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
 const NotFoundPage = lazy(() => import('@/pages/error/404'));
 const ApplicantDetailPage = lazy(() => import('@/pages/develop/ApplicantDetail'));

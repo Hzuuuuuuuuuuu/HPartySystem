@@ -70,6 +70,21 @@ export const logout = () => http.post<void>('/auth/logout');
 export const changePassword = (data: { oldPassword: string; newPassword: string }) =>
   http.post<void>('/auth/changePassword', data);
 
+/**
+ * 用户注册（入党申请人自助注册）。
+ */
+export const register = (data: {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  name: string;
+  gender?: number;
+  idCard?: string;
+  phone: string;
+  code: string;
+  uuid: string;
+}) => http.post<void>('/auth/register', data);
+
 export const getUserInfo = () => http.get<UserInfoVO>('/auth/userInfo');
 
 export const getRouters = () => http.get<RouterVO[]>('/auth/routers');

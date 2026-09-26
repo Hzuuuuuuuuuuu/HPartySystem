@@ -16,6 +16,7 @@ import com.hparty.framework.security.LoginUser;
 import com.hparty.framework.security.SecurityUtils;
 import com.hparty.system.domain.dto.ChangePasswordDTO;
 import com.hparty.system.domain.dto.LoginDTO;
+import com.hparty.system.domain.dto.RegisterDTO;
 import com.hparty.system.domain.entity.PartyPerson;
 import com.hparty.system.domain.entity.SysDept;
 import com.hparty.system.domain.entity.SysLoginLog;
@@ -68,6 +69,82 @@ public class AuthService {
     /** 密码有效期（天），0 或负数表示不过期 */
     @Value("${hparty.password.expire-days:90}")
     private int passwordExpireDays;
+
+    // ==================== 注册 ====================
+
+    /**
+     * 入党申请人自助注册。
+     *
+     * <p>创建人员档案（member_status=1 入党申请人）+ 系统账号，初始密码需满足强度要求。
+     * 注册成功后需要登录才能使用。</p>
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void register(RegisterDTO dto) {
+        // 1. 验证码校验
+        if (captchaEnabled) {
+            validateCaptcha(dto.getUuid(), dto.getCode());
+        }
+
+        // 2. 两次密码一致性校验
+        if (!dto.getPassword().equals(dto.getConfirmPassword())) {
+            throw new BizException("两次输入的密码不一致");
+        }
+
+        // 3. 密码强度校验
+        String reason = PasswordPolicy.validate(dto.getPassword(), dto.getUsername());
+        if (reason != null) {
+            throw new BizException(reason);
+        }
+
+        // 4. 检查用户名是否已存在
+        long usernameCount = userMapper.selectCount(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUsername, dto.getUsername()));
+        if (usernameCount > 0) {
+            throw new BizException("该用户名已被注册，请换一个");
+        }
+
+        // 5. 检查身份证是否已存在（如果填写了）
+        if (StrUtil.isNotBlank(dto.getIdCard())) {
+            long idCardCount = personMapper.selectCount(new LambdaQueryWrapper<PartyPerson>()
+                    .eq(PartyPerson::getIdCard, dto.getIdCard()));
+            if (idCardCount > 0) {
+                throw new BizException("该身份证号已被注册");
+            }
+        }
+
+        // 6. 检查手机号是否已存在
+        long phoneCount = personMapper.selectCount(new LambdaQueryWrapper<PartyPerson>()
+                .eq(PartyPerson::getPhone, dto.getPhone()));
+        if (phoneCount > 0) {
+            throw new BizException("该手机号已被注册");
+        }
+
+        // 7. 创建人员档案（入党申请人）
+        PartyPerson person = new PartyPerson();
+        person.setName(dto.getName());
+        person.setSex(dto.getGender());
+        person.setIdCard(StrUtil.isBlank(dto.getIdCard()) ? null : dto.getIdCard());
+        person.setPhone(dto.getPhone());
+        person.setMemberStatus(1); // 1=入党申请人
+        person.setIsMember(Constants.NO);
+        person.setPoliticalStatus("群众");
+        person.setStatus(Constants.STATUS_NORMAL);
+        person.setApplyDate(java.time.LocalDate.now()); // 提交申请日期
+        personMapper.insert(person);
+
+        // 8. 创建系统账号（待审核状态）
+        SysUser user = new SysUser();
+        user.setUsername(dto.getUsername());
+        user.setPassword(BCrypt.hashpw(dto.getPassword()));
+        user.setNickName(dto.getName());
+        user.setPersonId(person.getPersonId());
+        user.setStatus(Constants.STATUS_PENDING); // 待审核状态
+        // 注册用户默认不分配组织和角色，由管理员审核后分配
+        userMapper.insert(user);
+
+        log.info("新用户注册成功: username={}, personId={}, name={}",
+                dto.getUsername(), person.getPersonId(), dto.getName());
+    }
 
     // ==================== 验证码 ====================
 
@@ -124,9 +201,15 @@ public class AuthService {
                     : "账号或密码错误，账号已锁定，请 10 分钟后再试。");
         }
 
-        if (user.getStatus() != null && user.getStatus() == Constants.STATUS_DISABLED) {
-            recordLoginLog(dto.getUsername(), ip, request, 0, "账号已停用");
-            throw new BizException("账号已停用，请联系管理员。");
+        // 状态检查
+        if (user.getStatus() != null) {
+            if (user.getStatus() == Constants.STATUS_DISABLED) {
+                recordLoginLog(dto.getUsername(), ip, request, 0, "账号已停用");
+                throw new BizException("账号已停用，请联系管理员。");
+            } else if (user.getStatus() == Constants.STATUS_PENDING) {
+                recordLoginLog(dto.getUsername(), ip, request, 0, "账号待审核");
+                throw new BizException("您的账号正在审核中，请耐心等待管理员审核通过后再登录。");
+            }
         }
 
         // 4. 清空失败计数
@@ -226,12 +309,17 @@ public class AuthService {
         StpUtil.logout(user.getUserId());
     }
 
-    /** 校验验证码 */
+    /** 校验验证码（登录用） */
     private void validateCaptcha(LoginDTO dto) {
-        if (StrUtil.isBlank(dto.getUuid()) || StrUtil.isBlank(dto.getCode())) {
+        validateCaptcha(dto.getUuid(), dto.getCode());
+    }
+
+    /** 校验验证码（通用） */
+    private void validateCaptcha(String uuid, String code) {
+        if (StrUtil.isBlank(uuid) || StrUtil.isBlank(code)) {
             throw new BizException("请输入验证码");
         }
-        String cacheKey = Constants.CACHE_CAPTCHA + dto.getUuid();
+        String cacheKey = Constants.CACHE_CAPTCHA + uuid;
         String cached = redisTemplate.opsForValue().get(cacheKey);
 
         // 验证码一次性使用，无论对错都删除
@@ -240,7 +328,7 @@ public class AuthService {
         if (cached == null) {
             throw new BizException("验证码已过期，请重新获取");
         }
-        if (!cached.equalsIgnoreCase(dto.getCode().trim())) {
+        if (!cached.equalsIgnoreCase(code.trim())) {
             throw new BizException("验证码错误");
         }
     }
