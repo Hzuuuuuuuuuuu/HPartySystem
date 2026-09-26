@@ -1,0 +1,15 @@
+# 测试期公共覆盖项。
+#
+# 放在 classpath:/config/ 而不是 classpath:/ —— Spring Boot 的默认配置位置是
+# 「classpath:/;classpath:/config/」，后者在后、优先级更高，且两者会同时加载；
+# 而同名同目录的 application.properties 优先级低于 application.yml，
+# 放在 classpath:/ 下是压不住 main 里的 application.yml 的（实测无效）。
+#
+# 只放「所有集成测试都需要、且不改变 Spring 测试上下文缓存键」的覆盖项。
+# 需要单独覆盖某项的测试请慎用 @SpringBootTest(properties = ...)：
+# 每多一组不同的属性就多建一个 ApplicationContext，而 OrgPathResolver 的
+# static DataScopeMapper 会被后建的上下文覆盖，先建的上下文随即查到错误的连接池。
+hparty:
+  file:
+    # 用例会真实落盘上传文件，绝不能写进 D:/hparty/upload
+    local-path: target/test-uploads

@@ -2,6 +2,7 @@ package com.hparty.party.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.hparty.common.core.R;
+import com.hparty.framework.annotation.OperLog;
 import com.hparty.party.domain.entity.AmTask;
 import com.hparty.party.domain.entity.AmTaskSubmit;
 import com.hparty.party.service.AmTaskService;
@@ -41,6 +42,7 @@ public class AmTaskController {
 
     @Operation(summary = "发布任务")
     @SaCheckPermission("task:add")
+    @OperLog(title = "活动任务通知", businessType = OperLog.BusinessType.INSERT)
     @PostMapping
     public R<Long> add(@RequestBody AmTask task) {
         return R.ok("发布成功", taskService.add(task));
@@ -48,6 +50,7 @@ public class AmTaskController {
 
     @Operation(summary = "修改任务")
     @SaCheckPermission("task:edit")
+    @OperLog(title = "活动任务通知", businessType = OperLog.BusinessType.UPDATE)
     @PutMapping
     public R<Void> update(@RequestBody AmTask task) {
         taskService.update(task);
@@ -56,6 +59,7 @@ public class AmTaskController {
 
     @Operation(summary = "删除任务")
     @SaCheckPermission("task:remove")
+    @OperLog(title = "活动任务通知", businessType = OperLog.BusinessType.DELETE)
     @DeleteMapping("/{taskId}")
     public R<Void> remove(@PathVariable Long taskId) {
         taskService.remove(taskId);
@@ -68,6 +72,9 @@ public class AmTaskController {
      * 因此这里必须接收 {@link MultipartFile}；只声明 {@code fileId}/{@code fileUrl}
      * 会导致文件被静默丢弃（接口仍返回成功，但落库恒为 NULL）。</p>
      *
+     * <p>{@code file} / {@code fileId} / {@code fileUrl} 三者不能同时为空 —— 接口语义是
+     * 「上传资料」，无附件的提交记录没有内容可核对。</p>
+     *
      * @param taskId  任务ID
      * @param file    上传的文件（表单字段 file），可为空
      * @param fileId  已单独上传到 /file/upload 的文件ID，可为空
@@ -77,6 +84,7 @@ public class AmTaskController {
      */
     @Operation(summary = "支部上传任务材料")
     @SaCheckPermission("task:submit")
+    @OperLog(title = "活动任务通知", businessType = OperLog.BusinessType.UPLOAD)
     @PostMapping("/submit")
     public R<Long> submit(@RequestParam Long taskId,
                           @RequestParam(value = "file", required = false) MultipartFile file,

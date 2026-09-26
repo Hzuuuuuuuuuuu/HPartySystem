@@ -186,22 +186,6 @@ export interface AmMeeting {
   status?: number;
 }
 
-export interface AmTask {
-  taskId: number;
-  title: string;
-  taskType: string;
-  publishOrgId: number;
-  publishOrgName?: string;
-  activityName?: string;
-  content?: string;
-  startDate?: string;
-  endDate?: string;
-  deadline?: string;
-  status?: number;
-  publishBy?: string;
-  publishTime?: string;
-}
-
 export interface AmMaterial {
   materialId: number;
   meetingId?: number;

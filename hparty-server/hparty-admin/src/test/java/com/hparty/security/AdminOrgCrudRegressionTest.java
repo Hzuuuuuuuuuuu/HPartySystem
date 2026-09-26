@@ -10,6 +10,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -26,6 +27,7 @@ import java.util.function.Supplier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
@@ -47,6 +49,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * <p>再加两条端到端断言：11 个新增入口对超管一律 200 且落库的 org_id 就是管理节点；
  * 无归属组织的账号一律 600（而不是 500）。</p>
  */
+// 属性集合必须与同模块其它用例保持一致，否则会多建一个 ApplicationContext。
+// 上传目录之类的公共覆盖项统一放在 src/test/resources/config/application.yml。
 @SpringBootTest(properties = "hparty.captcha.enabled=false")
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
@@ -172,8 +176,12 @@ class AdminOrgCrudRegressionTest {
                         .isEqualTo(nodeId);
             }
 
-            // 「提交任务材料」的组织取自登录会话，无入参，单独走一次
-            JsonNode submit = send(post("/party/task/submit").param("taskId", String.valueOf(taskId)),
+            // 「提交任务材料」的组织取自登录会话，无入参，单独走一次。
+            // 必须带附件：Service 已拒绝无附件的空提交（见 AmTaskCrudRegressionTest）
+            JsonNode submit = send(multipart("/party/task/submit")
+                            .file(new MockMultipartFile("file", "org-node.txt", "text/plain",
+                                    "admin-node-submit".getBytes()))
+                            .param("taskId", String.valueOf(taskId)),
                     token, null);
             assertThat(submit.path("code").asInt())
                     .as("任务提交应成功，实际返回 %s", submit.path("msg").asText()).isEqualTo(200);
