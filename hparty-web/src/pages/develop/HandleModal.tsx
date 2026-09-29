@@ -501,7 +501,7 @@ export default function HandleModal({
                       )}
                     </span>
                     <span>
-                      通过所需赞成票：须超过 <b>{quorumInfo.needAgree}</b> 票 ——{' '}
+                      通过所需赞成票：须至少 <b>{quorumInfo.needAgree}</b> 票 ——{' '}
                       {quorumInfo.passOk ? (
                         <Tag color="success">已过半</Tag>
                       ) : (
