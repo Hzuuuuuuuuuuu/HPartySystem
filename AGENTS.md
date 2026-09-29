@@ -209,6 +209,8 @@ npm install && npm run dev
 | `V3__repair_party_secretary_permissions.sql` | 修复党委书记权限种子数据 |
 | `V4__grant_applicant_detail_permission.sql` | 补齐发展对象详情权限 |
 | `V5__develop_material_submission_permissions.sql` | 补齐发展材料提交权限 |
+| `V6__create_admin_org.sql` | 建超管归属的管理节点（`org_type=9`） |
+| `V7__add_dept_contact_fields.sql` | `sys_dept` 增加 `email`（联系邮箱）、`majors`（所辖专业） |
 
 **加表 / 加列 / 改索引的步骤**：
 
@@ -232,8 +234,8 @@ npm install && npm run dev
 | 账号 | 角色 | 用途 |
 |---|---|---|
 | `admin` | 超级管理员 | 全部权限。归属组织是 V6 迁移建的**管理节点**（`org_type=9`），因此各模块的新增都不再受「无归属组织」影响 |
-| `zgq` | 郑州市党委书记 | **走完整 25 步必须用它** —— 有 6 步由「上级党委」办理 |
-| `zsf` / `zw` | 第一/第二支部书记 | |
+| `zgq` | 人工智能学院党委书记 | **走完整 25 步必须用它** —— 有 6 步由「上级党委」办理 |
+| `zsf` / `zw` | 学生第一/第二党支部书记 | |
 | `liming` | 组织委员 | 发展党员主要办理人 |
 | `zhaoxue` | 普通党员 | 验证「仅本人数据」权限范围 |
 | `lxy` | 入党申请人 | 验证当事人视角 |

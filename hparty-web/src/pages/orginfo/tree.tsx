@@ -173,7 +173,7 @@ export default function OrgTreePage() {
             />
           </Form.Item>
           <Form.Item name="orgName" label="组织名称" rules={[{ required: true, message: '请输入组织名称' }]}>
-            <Input placeholder="如：第一支部" />
+            <Input placeholder="如：学生第一党支部" />
           </Form.Item>
           <Form.Item name="orgType" label="组织类型" rules={[{ required: true, message: '请选择类型' }]}>
             <Select

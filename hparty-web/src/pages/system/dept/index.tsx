@@ -324,9 +324,9 @@ export default function SystemDeptPage() {
               ),
             },
             {
-              title: '书记',
+              title: '负责人/联系人',
               dataIndex: 'leader',
-              width: 110,
+              width: 120,
               render: (v: string, row) => v || row.secretaryName || '—',
             },
             {
@@ -342,6 +342,8 @@ export default function SystemDeptPage() {
               render: (v: string) => v || '—',
             },
             { title: '联系电话', dataIndex: 'phone', width: 140, render: (v: string) => v || '—' },
+            { title: '联系邮箱', dataIndex: 'email', width: 180, render: (v: string) => v || '—' },
+            { title: '所辖专业', dataIndex: 'majors', width: 220, ellipsis: true, render: (v: string) => v || '—' },
             { title: '办公地址', dataIndex: 'address', ellipsis: true, render: (v: string) => v || '—' },
             { title: '排序', dataIndex: 'orderNum', width: 80, render: (v: number) => v ?? 0 },
             {
@@ -404,7 +406,7 @@ export default function SystemDeptPage() {
           </Form.Item>
 
           <Form.Item name="orgName" label="组织名称" rules={[{ required: true, message: '请输入组织名称' }]}>
-            <Input placeholder="如：第一支部" />
+            <Input placeholder="如：学生第一党支部" />
           </Form.Item>
 
           <Form.Item name="orgShortName" label="组织简称">
@@ -446,12 +448,20 @@ export default function SystemDeptPage() {
             />
           </Form.Item>
 
-          <Form.Item name="leader" label="负责人姓名">
+          <Form.Item name="leader" label="负责人/联系人">
             <Input placeholder="选填，用于架构图展示" />
           </Form.Item>
 
           <Form.Item name="phone" label="联系电话">
-            <Input />
+            <Input maxLength={20} />
+          </Form.Item>
+
+          <Form.Item name="email" label="联系邮箱" rules={[{ type: 'email', message: '邮箱格式不正确' }]}>
+            <Input maxLength={100} />
+          </Form.Item>
+
+          <Form.Item name="majors" label="所辖专业">
+            <Input maxLength={255} placeholder="多个专业用 / 分隔" />
           </Form.Item>
 
           <Form.Item name="address" label="办公地址">

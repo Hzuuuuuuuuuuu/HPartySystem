@@ -77,6 +77,12 @@ public class SysDept extends BaseEntity {
     /** 联系电话 */
     private String phone;
 
+    /** 联系邮箱 */
+    private String email;
+
+    /** 所辖专业，多个用 / 分隔 */
+    private String majors;
+
     /** 办公地址 */
     private String address;
 

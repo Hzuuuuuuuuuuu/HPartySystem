@@ -71,7 +71,7 @@ R2=$(curl -s -X POST $BASE/develop/flow/handle -H "$AH" -H "Content-Type: applic
 [ "$R2" != "200" ] && ok "不存在的人员被拒绝 (code=$R2)" || bad "不存在的人员竟被接受"
 
 # ---------- P1-4 删除后重新添加 ----------
-# 用 zsf（第一支部书记，有归属组织）而非 admin —— admin 没有 org_id，
+# 用 zsf（学生第一党支部书记，有归属组织）而非 admin —— admin 没有 org_id，
 # 创建发展对象会被明确拒绝，那是另一条修复（见下）
 echo
 echo "【P1-4】删除发展对象后重新添加应成功（不再 500）"
