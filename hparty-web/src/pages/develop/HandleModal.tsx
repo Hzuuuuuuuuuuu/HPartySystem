@@ -265,7 +265,7 @@ export default function HandleModal({
                   label="主办单位"
                   extra="基层党委或县级党委组织部门"
                 >
-                  <Input placeholder="如：郑州市党委" />
+                  <Input placeholder="如：人工智能学院党委" />
                 </Form.Item>
               </Col>
               <Col span={8}>

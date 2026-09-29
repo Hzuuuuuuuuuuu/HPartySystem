@@ -148,9 +148,9 @@ export default function LoginPage() {
 
         <div className="login-card__tips">
           <div>演示账号（初始密码均为 123456）：</div>
-          <div>admin — 超级管理员　|　zsf — 第一支部书记</div>
-          <div>liming — 组织委员　|　zw — 第二支部书记</div>
-          <div>zgq — 郑州市党委书记（办理上级党委审批类步骤）</div>
+          <div>admin — 超级管理员　|　zsf — 学生第一党支部书记</div>
+          <div>liming — 组织委员　|　zw — 学生第二党支部书记</div>
+          <div>zgq — 人工智能学院党委书记（办理上级党委审批类步骤）</div>
         </div>
       </div>
 

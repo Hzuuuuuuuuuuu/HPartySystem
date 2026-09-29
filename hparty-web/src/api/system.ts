@@ -110,6 +110,8 @@ export interface SysDept {
   orgLevel?: number;
   leader?: string;
   phone?: string;
+  email?: string;
+  majors?: string;
   address?: string;
   secretaryId?: number;
   secretaryName?: string;
