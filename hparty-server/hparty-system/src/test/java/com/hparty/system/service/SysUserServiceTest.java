@@ -3,6 +3,7 @@ package com.hparty.system.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hparty.common.core.PageResult;
 import com.hparty.framework.security.SecurityUtils;
+import com.hparty.framework.security.SessionInvalidator;
 import com.hparty.system.domain.dto.SysUserQuery;
 import com.hparty.system.domain.entity.SysDept;
 import com.hparty.system.domain.entity.SysUser;
@@ -47,8 +48,10 @@ class SysUserServiceTest {
     private final SysDeptMapper deptMapper = mock(SysDeptMapper.class);
     private final SysRelationMapper relationMapper = mock(SysRelationMapper.class);
 
+    private final SessionInvalidator sessionInvalidator = mock(SessionInvalidator.class);
+
     private final SysUserService service =
-            new SysUserService(userMapper, roleMapper, deptMapper, relationMapper);
+            new SysUserService(userMapper, roleMapper, deptMapper, relationMapper, sessionInvalidator);
 
     /** 列表行必须带出角色名称，「角色」列才有内容 */
     @Test

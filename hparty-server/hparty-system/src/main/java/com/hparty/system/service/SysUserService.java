@@ -11,6 +11,7 @@ import com.hparty.common.util.PasswordPolicy;
 import com.hparty.framework.core.PageUtils;
 import com.hparty.framework.datascope.DataScopeHelper;
 import com.hparty.framework.security.SecurityUtils;
+import com.hparty.framework.security.SessionInvalidator;
 import com.hparty.system.domain.dto.SysUserDTO;
 import com.hparty.system.domain.dto.SysUserQuery;
 import com.hparty.system.domain.entity.SysDept;
@@ -58,6 +59,7 @@ public class SysUserService {
     private final SysRoleMapper roleMapper;
     private final SysDeptMapper deptMapper;
     private final SysRelationMapper relationMapper;
+    private final SessionInvalidator sessionInvalidator;
 
     // ==================== 查询 ====================
 
@@ -195,6 +197,8 @@ public class SysUserService {
         if (dto.getRoleIds() != null) {
             saveUserRoles(dto.getUserId(), dto.getRoleIds());
         }
+        // 状态、组织、角色都可能变化，提交后让旧会话失效以重新加载权限
+        sessionInvalidator.invalidateUsersAfterCommit(List.of(dto.getUserId()));
     }
 
     /**
@@ -211,6 +215,7 @@ public class SysUserService {
 
         userMapper.deleteById(userId);
         relationMapper.deleteUserRolesByUserId(userId);
+        sessionInvalidator.invalidateUsersAfterCommit(List.of(userId));
     }
 
     /**
@@ -219,6 +224,7 @@ public class SysUserService {
      * @param userId   用户 ID
      * @param password 新的明文密码
      */
+    @Transactional(rollbackFor = Exception.class)
     public void resetPwd(Long userId, String password) {
         BizException.throwIf(StrUtil.isBlank(password), "密码不能为空");
 
@@ -231,6 +237,7 @@ public class SysUserService {
         patch.setPassword(BCrypt.hashpw(password));
         patch.setPwdUpdateDate(LocalDateTime.now());
         userMapper.updateById(patch);
+        sessionInvalidator.invalidateUsersAfterCommit(List.of(userId));
     }
 
     /**
@@ -239,6 +246,7 @@ public class SysUserService {
      * @param userId 用户 ID
      * @param status 0=停用 1=正常
      */
+    @Transactional(rollbackFor = Exception.class)
     public void changeStatus(Long userId, Integer status) {
         BizException.throwIf(status == null, "状态不能为空");
         SysUser user = requireUser(userId);
@@ -252,6 +260,7 @@ public class SysUserService {
         patch.setUserId(userId);
         patch.setStatus(status);
         userMapper.updateById(patch);
+        sessionInvalidator.invalidateUsersAfterCommit(List.of(userId));
     }
 
     // ==================== 内部方法 ====================

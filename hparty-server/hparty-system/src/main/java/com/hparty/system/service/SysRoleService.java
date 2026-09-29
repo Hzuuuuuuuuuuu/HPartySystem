@@ -7,6 +7,7 @@ import com.hparty.common.constant.Constants;
 import com.hparty.common.core.PageResult;
 import com.hparty.common.exception.BizException;
 import com.hparty.framework.core.PageUtils;
+import com.hparty.framework.security.SessionInvalidator;
 import com.hparty.system.domain.dto.SysRoleDTO;
 import com.hparty.system.domain.dto.SysRoleQuery;
 import com.hparty.system.domain.entity.SysRole;
@@ -42,6 +43,7 @@ public class SysRoleService {
 
     private final SysRoleMapper roleMapper;
     private final SysRelationMapper relationMapper;
+    private final SessionInvalidator sessionInvalidator;
 
     // ==================== 查询 ====================
 
@@ -123,6 +125,7 @@ public class SysRoleService {
         if (StrUtil.isNotBlank(dto.getRoleKey())) {
             BizException.throwIf(existsRoleKey(dto.getRoleKey(), dto.getRoleId()), "角色权限字符串已存在");
         }
+        List<Long> affectedUserIds = relationMapper.selectUserIdsByRoleId(dto.getRoleId());
 
         SysRole role = new SysRole();
         role.setRoleId(dto.getRoleId());
@@ -141,6 +144,7 @@ public class SysRoleService {
         if (dto.getDeptIds() != null || !Objects.equals(dataScope, DATA_SCOPE_CUSTOM)) {
             saveDepts(dto.getRoleId(), dataScope, dto.getDeptIds());
         }
+        sessionInvalidator.invalidateUsersAfterCommit(affectedUserIds);
     }
 
     /**
@@ -155,11 +159,14 @@ public class SysRoleService {
 
         long userCount = relationMapper.countUsersByRoleId(roleId);
         BizException.throwIf(userCount > 0, "该角色已分配给 " + userCount + " 个用户，不允许删除");
+        // 当前校验下应为空；保留收集以防校验放宽后遗漏会话失效
+        List<Long> affectedUserIds = relationMapper.selectUserIdsByRoleId(roleId);
 
         roleMapper.deleteById(roleId);
         relationMapper.deleteRoleMenusByRoleId(roleId);
         relationMapper.deleteRoleDeptsByRoleId(roleId);
         relationMapper.deleteUserRolesByRoleId(roleId);
+        sessionInvalidator.invalidateUsersAfterCommit(affectedUserIds);
     }
 
     // ==================== 授权 ====================
@@ -173,7 +180,9 @@ public class SysRoleService {
     @Transactional(rollbackFor = Exception.class)
     public void assignMenus(Long roleId, List<Long> menuIds) {
         requireRole(roleId);
+        List<Long> affectedUserIds = relationMapper.selectUserIdsByRoleId(roleId);
         saveMenus(roleId, menuIds);
+        sessionInvalidator.invalidateUsersAfterCommit(affectedUserIds);
     }
 
     /**
@@ -182,15 +191,18 @@ public class SysRoleService {
      * @param roleId 角色 ID
      * @param status 0=停用 1=正常
      */
+    @Transactional(rollbackFor = Exception.class)
     public void changeStatus(Long roleId, Integer status) {
         BizException.throwIf(status == null, "状态不能为空");
         SysRole role = requireRole(roleId);
         BizException.throwIf(Constants.SUPER_ADMIN_ROLE.equals(role.getRoleKey()), "超级管理员角色不允许停用");
+        List<Long> affectedUserIds = relationMapper.selectUserIdsByRoleId(roleId);
 
         SysRole patch = new SysRole();
         patch.setRoleId(roleId);
         patch.setStatus(status);
         roleMapper.updateById(patch);
+        sessionInvalidator.invalidateUsersAfterCommit(affectedUserIds);
     }
 
     // ==================== 内部方法 ====================
