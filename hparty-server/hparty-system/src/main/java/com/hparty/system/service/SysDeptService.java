@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +82,13 @@ public class SysDeptService {
         }
 
         Page<SysDept> page = PageUtils.toPage(query);
-        return PageResult.of(deptMapper.selectPage(page, wrapper));
+        deptMapper.selectPage(page, wrapper);
+        // 实时口径：用子树党员汇总覆盖冗余列 member_count，保证与组织树、统计卡片同源
+        Map<Long, Integer> memberCounts = loadMemberCounts();
+        for (SysDept dept : page.getRecords()) {
+            dept.setMemberCount(memberCounts.getOrDefault(dept.getOrgId(), 0));
+        }
+        return PageResult.of(page);
     }
 
     /**
@@ -111,6 +119,8 @@ public class SysDeptService {
     public SysDept getDept(Long orgId) {
         SysDept dept = requireDept(orgId);
         checkAccess(orgId);
+        // 实时口径：与列表、组织树、统计卡片同源，避免详情页显示陈旧的冗余列
+        dept.setMemberCount(loadMemberCounts().getOrDefault(orgId, 0));
         return dept;
     }
 
@@ -313,9 +323,10 @@ public class SysDeptService {
     /** 把扁平组织列表组装成树 */
     private List<SysDeptTreeVO> buildTree(List<SysDept> depts) {
         Map<Long, String> secretaryNames = loadSecretaryNames(depts);
+        Map<Long, Integer> memberCounts = loadMemberCounts();
         Map<Long, SysDeptTreeVO> nodes = new LinkedHashMap<>();
         for (SysDept dept : depts) {
-            nodes.put(dept.getOrgId(), toTreeVO(dept, secretaryNames));
+            nodes.put(dept.getOrgId(), toTreeVO(dept, secretaryNames, memberCounts));
         }
         List<SysDeptTreeVO> roots = new ArrayList<>();
         for (SysDeptTreeVO node : nodes.values()) {
@@ -345,7 +356,8 @@ public class SysDeptService {
                 PartyPerson::getPersonId, PartyPerson::getName, (a, b) -> a));
     }
 
-    private SysDeptTreeVO toTreeVO(SysDept dept, Map<Long, String> secretaryNames) {
+    private SysDeptTreeVO toTreeVO(SysDept dept, Map<Long, String> secretaryNames,
+                                  Map<Long, Integer> memberCounts) {
         SysDeptTreeVO vo = new SysDeptTreeVO();
         vo.setOrgId(dept.getOrgId());
         vo.setParentId(dept.getParentId());
@@ -354,9 +366,63 @@ public class SysDeptService {
         vo.setOrgTypeLabel(OrgType.labelOf(dept.getOrgType()));
         vo.setOrgLevel(dept.getOrgLevel());
         vo.setLeader(dept.getLeader());
-        vo.setMemberCount(dept.getMemberCount());
+        // 实时口径：改用汇总统计而非冗余列 member_count（后者不随人员流转维护）
+        vo.setMemberCount(memberCounts.getOrDefault(dept.getOrgId(), 0));
         vo.setSecretaryName(dept.getSecretaryId() == null ? null : secretaryNames.get(dept.getSecretaryId()));
         vo.setFoundedDate(dept.getFoundedDate());
         return vo;
+    }
+
+    /**
+     * 统计各组织「本级 + 所有下级」的党员数（{@code is_member = 1}），实时汇总。
+     *
+     * <p>{@code sys_dept.member_count} 冗余列不随人员流转自动维护（历史演示数据甚至与
+     * 实际人数不符），因此所有展示层一律改用此实时口径，与「党员统计」卡片的
+     * {@code COUNT(*) WHERE is_member = 1} 同源，避免同一系统出现两套党员数。</p>
+     *
+     * <p>汇总规则：某组织计数 = 所有 {@code org_path} 以其 {@code org_path} 为前缀的
+     * 组织（即本级及全部子孙）的直属党员数之和。这样党委/学院能体现其下辖各支部的
+     * 党员总量，而支部则只显示本支部人数。组织表规模很小，全表加载并做前缀求和即可。</p>
+     *
+     * @return orgId → 子树党员数
+     */
+    private Map<Long, Integer> loadMemberCounts() {
+        List<SysDept> all = deptMapper.selectList(new QueryWrapper<SysDept>()
+                .select("org_id", "org_path")
+                .ne("org_type", OrgType.ADMIN_NODE.getCode()));
+
+        // 各组织本级直属党员数
+        List<Map<String, Object>> grouped = personMapper.selectMaps(new QueryWrapper<PartyPerson>()
+                .select("org_id AS orgId", "COUNT(*) AS cnt")
+                .eq("is_member", Constants.YES)
+                .groupBy("org_id"));
+        Map<Long, Integer> direct = new HashMap<>();
+        for (Map<String, Object> row : grouped) {
+            Object oid = row.get("orgId");
+            Object cnt = row.get("cnt");
+            if (oid != null && cnt != null) {
+                direct.put(((Number) oid).longValue(), ((Number) cnt).intValue());
+            }
+        }
+
+        // 前缀求和，滚动汇总到每个子树
+        Map<Long, Integer> subtree = new HashMap<>();
+        for (SysDept node : all) {
+            String path = node.getOrgPath();
+            int sum;
+            if (StrUtil.isBlank(path)) {
+                sum = direct.getOrDefault(node.getOrgId(), 0);
+            } else {
+                sum = 0;
+                for (SysDept other : all) {
+                    String op = other.getOrgPath();
+                    if (StrUtil.isNotBlank(op) && op.startsWith(path)) {
+                        sum += direct.getOrDefault(other.getOrgId(), 0);
+                    }
+                }
+            }
+            subtree.put(node.getOrgId(), sum);
+        }
+        return subtree;
     }
 }

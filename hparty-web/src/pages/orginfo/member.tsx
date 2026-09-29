@@ -61,6 +61,10 @@ const MEMBER_STATUS_LABEL: Record<number, string> = {
   6: '流动党员',
 };
 
+/** 与后端 MemberStatus.isPartyMember 一致：预备(4)/正式(5)/流动(6)党员为党员 */
+const isPartyMemberStatus = (status?: number | null): boolean =>
+  status === 4 || status === 5 || status === 6;
+
 const MEMBER_STATUS_COLOR: Record<number, string> = {
   0: 'default',
   1: 'cyan',
@@ -213,7 +217,6 @@ export default function OrgMemberPage() {
     form.setFieldsValue({
       sex: 1,
       memberStatus: 0,
-      isMember: 0,
       orgId: query.orgId ?? undefined,
     });
     setModalOpen(true);
@@ -243,8 +246,10 @@ export default function OrgMemberPage() {
 
   const submit = async () => {
     const values = await form.validateFields();
+    // is_member 由后端依据党员状态派生，前端不提交（提交也会被覆盖）
+    const { isMember: _ignoredIsMember, ...rest } = values;
     const payload = {
-      ...values,
+      ...rest,
       birthDate: values.birthDate ? values.birthDate.format('YYYY-MM-DD') : undefined,
       applyDate: values.applyDate ? values.applyDate.format('YYYY-MM-DD') : undefined,
       activistDate: values.activistDate ? values.activistDate.format('YYYY-MM-DD') : undefined,
@@ -576,7 +581,7 @@ export default function OrgMemberPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="age" label="年龄">
+              <Form.Item name="age" label="年龄" tooltip="填写出生日期后自动按当前年份计算；仅在无出生日期时手填生效">
                 <InputNumber min={0} max={150} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
@@ -648,13 +653,18 @@ export default function OrgMemberPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="isMember" label="是否党员">
-                <Select
-                  options={[
-                    { label: '是', value: 1 },
-                    { label: '否', value: 0 },
-                  ]}
-                />
+              {/* 是否党员由「党员状态」自动派生（预备/正式/流动党员=是），后端落库时会覆盖，
+                  这里只读展示，避免出现「手选却被改写」的误导。 */}
+              <Form.Item label="是否党员" tooltip="根据党员状态自动判定：预备/正式/流动党员为「是」">
+                <Form.Item noStyle shouldUpdate={(prev, cur) => prev.memberStatus !== cur.memberStatus}>
+                  {({ getFieldValue }) =>
+                    isPartyMemberStatus(getFieldValue('memberStatus')) ? (
+                      <Tag color="red">是</Tag>
+                    ) : (
+                      <Tag>否</Tag>
+                    )
+                  }
+                </Form.Item>
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -683,7 +693,7 @@ export default function OrgMemberPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="partyAge" label="党龄（年）">
+              <Form.Item name="partyAge" label="党龄（年）" tooltip="填写转正日期后自动按当前年份计算；仅在无转正日期时手填生效">
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
