@@ -7,6 +7,7 @@ import com.hparty.common.constant.Constants;
 import com.hparty.common.core.PageResult;
 import com.hparty.common.exception.BizException;
 import com.hparty.framework.core.PageUtils;
+import com.hparty.framework.security.SessionInvalidator;
 import com.hparty.system.domain.dto.SysMenuDTO;
 import com.hparty.system.domain.dto.SysMenuQuery;
 import com.hparty.system.domain.entity.SysMenu;
@@ -50,6 +51,7 @@ public class SysMenuService {
 
     private final SysMenuMapper menuMapper;
     private final SysRelationMapper relationMapper;
+    private final SessionInvalidator sessionInvalidator;
 
     // ==================== 查询 ====================
 
@@ -138,10 +140,12 @@ public class SysMenuService {
      *
      * @param dto 菜单信息，menuId 必填
      */
+    @Transactional(rollbackFor = Exception.class)
     public void updateMenu(SysMenuDTO dto) {
         BizException.throwIf(dto.getMenuId() == null, "菜单ID不能为空");
         requireMenu(dto.getMenuId());
         validate(dto);
+        List<Long> affectedUserIds = relationMapper.selectUserIdsByMenuId(dto.getMenuId());
 
         Long parentId = dto.getParentId();
         if (parentId != null && !Objects.equals(parentId, ROOT_MENU_ID)) {
@@ -168,6 +172,8 @@ public class SysMenuService {
         menu.setIcon(dto.getIcon());
         menu.setRemark(dto.getRemark());
         menuMapper.updateById(menu);
+        // 权限标识、状态都可能变化，提交后让拥有该菜单的用户重新加载权限
+        sessionInvalidator.invalidateUsersAfterCommit(affectedUserIds);
     }
 
     /**
@@ -182,8 +188,11 @@ public class SysMenuService {
         long childCount = menuMapper.selectCount(new QueryWrapper<SysMenu>().eq("parent_id", menuId));
         BizException.throwIf(childCount > 0, "存在子菜单，不允许删除");
 
+        // 必须在清理授权关系之前收集，否则查不到受影响用户
+        List<Long> affectedUserIds = relationMapper.selectUserIdsByMenuId(menuId);
         relationMapper.deleteRoleMenusByMenuId(menuId);
         menuMapper.deleteById(menuId);
+        sessionInvalidator.invalidateUsersAfterCommit(affectedUserIds);
     }
 
     // ==================== 内部方法 ====================

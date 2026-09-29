@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -58,6 +59,7 @@ class PermissionSessionInvalidationTest {
 
     private final List<Long> userIds = new ArrayList<>();
     private final List<Long> roleIds = new ArrayList<>();
+    private final List<Long> menuIds = new ArrayList<>();
     private final List<String> usernames = new ArrayList<>();
     private final List<String> tokens = new ArrayList<>();
     private final Map<String, String> passwords = new LinkedHashMap<>();
@@ -76,7 +78,8 @@ class PermissionSessionInvalidationTest {
                 "SELECT org_id FROM sys_dept WHERE del_flag = 0 ORDER BY org_id LIMIT 1", Long.class);
 
         // 操作人：独立角色，只拿用户/角色管理权限，不与被测用户共享角色
-        Long operatorRole = createRole("OP", "system:role:edit", "system:user:edit");
+        Long operatorRole = createRole("OP", "system:role:edit", "system:user:edit",
+                "system:menu:add", "system:menu:edit", "system:menu:remove");
         Long operator = createUser("op", operatorRole);
 
         targetRoleId = createRole("TG", PROBE_PERM);
@@ -95,6 +98,10 @@ class PermissionSessionInvalidationTest {
     void cleanup() throws Exception {
         for (String token : tokens) {
             mockMvc.perform(post("/auth/logout").header("Authorization", "Bearer " + token)).andReturn();
+        }
+        for (Long menuId : menuIds) {
+            jdbc.update("DELETE FROM sys_role_menu WHERE menu_id = ?", menuId);
+            jdbc.update("DELETE FROM sys_menu WHERE menu_id = ?", menuId);
         }
         for (Long userId : userIds) {
             jdbc.update("DELETE FROM sys_user_role WHERE user_id = ?", userId);
@@ -174,7 +181,63 @@ class PermissionSessionInvalidationTest {
         assertThat(probe(fresh)).as("重新登录后应按新权限拒绝").isEqualTo(403);
     }
 
+    // ------------------------------------------------------------------ 菜单
+
+    @Test
+    void updatingMenuInvalidatesUsersHoldingIt() throws Exception {
+        Long menuId = createMenu(targetRoleId);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("menuId", menuId);
+        body.put("parentId", 0);
+        body.put("menuName", "PSI menu renamed");
+        body.put("menuType", "F");
+        body.put("status", 0);
+        JsonNode res = send(put("/system/menu"), operatorToken, body);
+        assertThat(res.path("code").asInt()).as(res.path("msg").asText()).isEqualTo(200);
+
+        assertThat(probe(targetToken1)).as("菜单变更后拥有该菜单的用户会话应失效").isEqualTo(401);
+        assertThat(probe(targetToken2)).isEqualTo(401);
+        assertThat(code(get("/auth/userInfo"), operatorToken)).as("未持有该菜单的用户不受影响").isEqualTo(200);
+    }
+
+    @Test
+    void removingMenuInvalidatesUsersCollectedBeforeAssociationCleanup() throws Exception {
+        Long menuId = createMenu(targetRoleId);
+        JsonNode res = send(delete("/system/menu/" + menuId), operatorToken, null);
+        assertThat(res.path("code").asInt()).as(res.path("msg").asText()).isEqualTo(200);
+
+        assertThat(probe(targetToken1)).isEqualTo(401);
+        assertThat(probe(targetToken2)).isEqualTo(401);
+    }
+
+    @Test
+    void addingMenuDoesNotInvalidateSessions() throws Exception {
+        String name = "PSI menu add " + suffix();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("parentId", 0);
+        body.put("menuName", name);
+        body.put("menuType", "F");
+        body.put("perms", "psi:add:" + suffix());
+        JsonNode res = send(post("/system/menu"), operatorToken, body);
+        assertThat(res.path("code").asInt()).as(res.path("msg").asText()).isEqualTo(200);
+        menuIds.addAll(jdbc.queryForList("SELECT menu_id FROM sys_menu WHERE menu_name = ?", Long.class, name));
+
+        assertThat(probe(targetToken1)).as("新增菜单不应注销现有会话").isEqualTo(200);
+        assertThat(probe(targetToken2)).isEqualTo(200);
+    }
+
     // ------------------------------------------------------------------ 夹具
+
+    /** 建一个按钮菜单并授权给指定角色 */
+    private Long createMenu(Long roleId) {
+        String name = "PSI menu " + suffix();
+        jdbc.update("INSERT INTO sys_menu (parent_id,menu_name,order_num,menu_type,visible,status,perms,remark) "
+                + "VALUES (0,?,999,'F',0,1,?,'permission session regression')", name, "psi:probe:" + suffix());
+        Long menuId = jdbc.queryForObject("SELECT menu_id FROM sys_menu WHERE menu_name = ?", Long.class, name);
+        menuIds.add(menuId);
+        jdbc.update("INSERT INTO sys_role_menu(role_id,menu_id) VALUES (?,?)", roleId, menuId);
+        return menuId;
+    }
 
     private Long createRole(String marker, String... perms) {
         String roleKey = "PSI_" + marker + "_" + suffix();
