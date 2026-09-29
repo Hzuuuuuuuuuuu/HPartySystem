@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Empty, Modal, Space, Spin, Tag, App as AntdApp, Form, Input, Select, InputNumber } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-import { listDeptTree, addDept, updateDept, removeDept, type SysDept } from '@/api/system';
+import { listDeptTree, getDept, addDept, updateDept, removeDept, type SysDept } from '@/api/system';
 import { useUserStore } from '@/store/user';
 
 const ORG_TYPE_LABEL: Record<number, string> = {
@@ -61,10 +61,20 @@ export default function OrgTreePage() {
     setModalOpen(true);
   };
 
-  const openEdit = (node: SysDept) => {
+  const openEdit = async (node: SysDept) => {
     setEditing(node);
+    form.resetFields();
+    // 组织树接口（SysDeptTreeVO）只带展示字段，缺 phone/address/orderNum/email/majors；
+    // 先用节点占位，再拉完整详情回填，避免编辑时这些字段显示为空。
     form.setFieldsValue(node);
     setModalOpen(true);
+    try {
+      const full = await getDept(node.orgId);
+      setEditing(full);
+      form.setFieldsValue(full);
+    } catch {
+      // 拉取失败时保留树节点数据
+    }
   };
 
   const submit = async () => {
@@ -187,7 +197,17 @@ export default function OrgTreePage() {
             <Input />
           </Form.Item>
           <Form.Item name="phone" label="联系电话">
+            <Input maxLength={20} />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="联系邮箱"
+            rules={[{ type: 'email', message: '邮箱格式不正确' }]}
+          >
             <Input />
+          </Form.Item>
+          <Form.Item name="majors" label="所辖专业">
+            <Input placeholder="多个专业用 / 分隔" />
           </Form.Item>
           <Form.Item name="address" label="办公地址">
             <Input />
