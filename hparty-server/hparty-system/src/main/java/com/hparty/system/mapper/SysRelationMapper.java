@@ -67,6 +67,25 @@ public interface SysRelationMapper {
     @Delete("DELETE FROM sys_user_role WHERE role_id = #{roleId}")
     int deleteUserRolesByRoleId(@Param("roleId") Long roleId);
 
+    /** 查询挂有该角色的用户 ID（去重），供权限变更后失效会话 */
+    @Select("SELECT DISTINCT user_id FROM sys_user_role WHERE role_id = #{roleId}")
+    List<Long> selectUserIdsByRoleId(@Param("roleId") Long roleId);
+
+    /**
+     * 批量：查询挂有任一给定角色的用户 ID（去重），供权限变更后失效会话。
+     *
+     * <p>调用方必须先判空：集合为空时会拼出 {@code IN ()} 非法 SQL。</p>
+     */
+    @Select("""
+            <script>
+            SELECT DISTINCT user_id
+            FROM sys_user_role
+            WHERE role_id IN
+            <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">#{roleId}</foreach>
+            </script>
+            """)
+    List<Long> selectUserIdsByRoleIds(@Param("roleIds") Collection<Long> roleIds);
+
     // ==================== 角色 - 菜单 ====================
 
     /** 查询角色已分配的菜单 ID */
@@ -90,6 +109,15 @@ public interface SysRelationMapper {
     /** 按菜单清空角色关联 */
     @Delete("DELETE FROM sys_role_menu WHERE menu_id = #{menuId}")
     int deleteRoleMenusByMenuId(@Param("menuId") Long menuId);
+
+    /** 查询通过任一角色拥有该菜单的用户 ID（去重），供权限变更后失效会话 */
+    @Select("""
+            SELECT DISTINCT ur.user_id
+            FROM sys_user_role ur
+            JOIN sys_role_menu rm ON rm.role_id = ur.role_id
+            WHERE rm.menu_id = #{menuId}
+            """)
+    List<Long> selectUserIdsByMenuId(@Param("menuId") Long menuId);
 
     // ==================== 角色 - 组织（数据范围=自定义） ====================
 
